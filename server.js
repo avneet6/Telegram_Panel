@@ -65,7 +65,19 @@ app.post('/api/send-code', async (req, res) => {
 
     console.log(`[INFO] Code sent to ${phoneNumber}`);
     res.json({ success: true, message: 'Code sent successfully.' });
+
   } catch (err) {
+    if (err.errorMessage && err.errorMessage.includes('A wait of')) {
+      const waitMatch = err.errorMessage.match(/A wait of (\\d+) seconds/);
+      const waitTime = waitMatch ? parseInt(waitMatch[1]) : null;
+      return res.status(429).json({
+        success: false,
+        message: waitTime
+          ? `Rate limited. Please wait ${Math.ceil(waitTime / 60)} minutes.`
+          : 'Rate limited by Telegram. Try again later.'
+      });
+    }
+
     console.error('[ERROR] Failed to send code:', err);
     res.status(500).json({ success: false, message: 'Failed to send code.' });
   }
@@ -207,12 +219,21 @@ app.post('/api/join-channel', async (req, res) => {
 
         if (link.includes('joinchat') || link.includes('+')) {
           const inviteHash = link.split('/').pop().replace('+', '');
-          const imported = await withTimeout(
-            client.invoke(new Api.messages.ImportChatInvite({ hash: inviteHash })),
-            15000,
-            'ImportChatInvite timeout'
-          );
-          inputChannel = await client.getInputEntity(imported.chats[0]);
+          try {
+            const imported = await withTimeout(
+              client.invoke(new Api.messages.ImportChatInvite({ hash: inviteHash })),
+              15000,
+              'ImportChatInvite timeout'
+            );
+            inputChannel = await client.getInputEntity(imported.chats[0]);
+          } catch (err) {
+            if (err.message.includes('USER_ALREADY_PARTICIPANT')) {
+              console.log(`${acc.phoneNumber} is already in the channel. Skipping join.`);
+              inputChannel = await client.getInputEntity(channelLink);
+            } else {
+              throw err;
+            }
+          }
         } else {
           const username = link
             .replace('https://t.me/', '')
@@ -234,61 +255,49 @@ app.post('/api/join-channel', async (req, res) => {
           'JoinChannel timeout'
         );
 
+        // Make the channel visible in the app
+        try {
+          await client.getMessages(inputChannel, { limit: 1 });
+          await client.invoke(new Api.messages.ReadHistory({ peer: inputChannel }));
+        } catch (readErr) {
+          console.warn(`[${acc.phoneNumber}] ReadHistory skipped due to:`, readErr.message);
+        }
+
         const joinedEntity = await client.getEntity(inputChannel);
         console.log(`${acc.phoneNumber} joined channel: ${joinedEntity.title}`);
 
         const leaveDelay = Number(stayDays) * 60 * 1000;
 
         setTimeout(() => {
-          const leaveClient = new TelegramClient(
-            new StringSession(acc.stringSession),
-            apiId,
-            apiHash,
-            { connectionRetries: 3 }
-          );
+  const leaveClient = new TelegramClient(
+    new StringSession(acc.stringSession),
+    apiId,
+    apiHash,
+    { connectionRetries: 3 }
+  );
 
-          (async () => {
-            try {
-              await withTimeout(leaveClient.connect(), 15000, 'Reconnect timeout');
+  (async () => {
+    try {
+      await withTimeout(leaveClient.connect(), 15000, 'Reconnect timeout');
 
-              let leaveChannelEntity;
-              if (channelLink.includes('joinchat') || channelLink.includes('+')) {
-                const inviteHash = channelLink.split('/').pop().replace('+', '');
-                const imported = await withTimeout(
-                  leaveClient.invoke(new Api.messages.ImportChatInvite({ hash: inviteHash })),
-                  15000,
-                  'ImportChatInvite timeout (leave)'
-                );
-                leaveChannelEntity = await leaveClient.getInputEntity(imported.chats[0]);
-              } else {
-                const username = channelLink
-                  .replace('https://t.me/', '')
-                  .replace('http://t.me/', '')
-                  .replace('t.me/', '')
-                  .replace('@', '')
-                  .trim();
+      // Use full entity to avoid PeerUser/ID mismatch
+      const leaveChannelEntity = await leaveClient.getInputEntity(joinedEntity);
 
-                leaveChannelEntity = await withTimeout(
-                  leaveClient.getInputEntity(username),
-                  15000,
-                  'GetEntity timeout (leave)'
-                );
-              }
+      await withTimeout(
+        leaveClient.invoke(new Api.channels.LeaveChannel({ channel: leaveChannelEntity })),
+        15000,
+        'LeaveChannel timeout'
+      );
 
-              await withTimeout(
-                leaveClient.invoke(new Api.channels.LeaveChannel({ channel: leaveChannelEntity })),
-                15000,
-                'LeaveChannel timeout'
-              );
+      console.log(`${acc.phoneNumber} left channel: ${joinedEntity.title}`);
+    } catch (leaveErr) {
+      console.error(`${acc.phoneNumber} leave process error:`, leaveErr.message);
+    } finally {
+      await leaveClient.disconnect();
+    }
+  })();
+}, leaveDelay);
 
-              console.log(`${acc.phoneNumber} left channel: ${joinedEntity.title}`);
-            } catch (leaveErr) {
-              console.log(`${acc.phoneNumber} leave process completed (no error reported)`);
-            } finally {
-              await leaveClient.disconnect();
-            }
-          })();
-        }, leaveDelay);
 
         await client.disconnect();
 
@@ -301,6 +310,7 @@ app.post('/api/join-channel', async (req, res) => {
     }, index * Number(joinDelayMinutes) * 60 * 1000);
   });
 });
+
 
 
 
