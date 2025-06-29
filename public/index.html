@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telegram Management Panel</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .sidebar {
+      height: 100vh;
+      background-color: #343a40;
+      color: white;
+      padding-top: 20px;
+      position: sticky;
+      top: 0;
+    }
+
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      padding: 10px 20px;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    .sidebar a:hover {
+      background-color: #495057;
+    }
+
+    .main {
+      padding: 20px;
+    }
+
+    .card {
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .toggle-btn {
+      display: none;
+      background-color: #343a40;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+        flex-direction: column;
+        background-color: #343a40;
+        z-index: 999;
+        position: sticky;
+        top: 0px;
+        width: 100%;
+        top: 50px;
+        left: 0;
+        padding: 10px 0;
+        max-height: 330px;
+        transition: all 2s !important;
+      }
+
+      .sidebar.show {
+        display: flex;
+      }
+
+      .toggle-btn {
+        display: block;
+        position: sticky;
+        top: 0px;
+        z-index: 999;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <button class="toggle-btn d-md-none" onclick="toggleSidebar()">☰ Menu</button>
+
+      <!-- Sidebar -->
+      <nav id="sidebar" class="col-md-2 sidebar col-12 mb-3 mb-md-0">
+        <h4 class="text-center d-none d-md-block">Telegram Panel</h4>
+        <a href="#home">🏠 Home</a>
+        <a href="#join">🔗 Join Channel</a>
+        <a href="#leave">🚪 Leave Channel</a>
+        <a href="#mute">🔕 Mute/Unmute</a>
+        <a href="#views">👁 Add Views</a>
+        <a href="#live">🎥 Live Session</a>
+        <a href="#Accounts">🚹 All Accounts</a>
+      </nav>
+
+      <main class="col-md-10 main">
+
+        <!-- 1. Manage Telegram Accounts -->
+        <div class="section" id="home">
+          <h3>Manage Telegram Accounts</h3>
+          <div class="card p-4 mb-4">
+            <form id="accountForm">
+              <div class="mb-3">
+                <label class="form-label">Phone Number</label>
+                <input type="text" id="phone" class="form-control" placeholder="+91XXXXXXXXXX" required />
+              </div>
+              <button type="button" onclick="sendCode(event)" class="btn btn-dark text-white px-4 mb-2">Send
+                OTP</button>
+
+              <div class="mb-3">
+                <label class="form-label">Password / OTP</label>
+                <input type="text" id="otp" class="form-control" placeholder="Enter OTP or Password">
+              </div>
+              <button type="submit" onclick="verifyCode(event)" class="btn btn-success">Add Account</button>
+
+            </form>
+          </div>
+        </div>
+
+<!-- Channel Link -->
+    
+       <div class="card p-4 mb-4">
+  <h4 class="mb-3">Join Channel</h4>
+  <form onsubmit="joinChannel(event)">
+    
+    <div class="mb-3">
+      <label for="channelLink" class="form-label">Channel Link</label>
+      <input
+        type="url"
+        class="form-control"
+        id="channelLink"
+        placeholder="https://t.me/yourchannel"
+        required
+      />
+    </div>
+
+    <!-- Number of Accounts -->
+    <div class="mb-3">
+      <label for="accountCount" class="form-label">Number of Accounts</label>
+      <input
+        type="number"
+        class="form-control"
+        id="accountCount"
+        min="1"
+        placeholder="e.g. 10"
+        required
+      />
+    </div>
+
+    <!-- Delay Between Joins -->
+    <div class="mb-3">
+      <label for="joinDelay" class="form-label">Delay Between Joins</label>
+      <select class="form-select" id="joinDelay" required>
+        <option value="1">1 minutes</option>
+        <option value="2">2 minutes</option>
+        <option value="5">5 minutes</option>
+        <option value="10">10 minutes</option>
+      </select>
+    </div>
+
+    <!-- Stay Duration -->
+    <div class="mb-3">
+      <label for="stayDays" class="form-label">Stay Duration</label>
+      <select class="form-select" id="stayDays" required>
+        <option value="2">2 minutes</option>
+        <option value="0.01">15 minutes</option>
+        <option value="0.041">1 hour</option>
+        <option value="1">1 day</option>
+        <option value="3">3 days</option>
+        <option value="7">7 days</option>
+      </select>
+    </div>
+
+    <!-- Start Button -->
+    <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
+  </form>
+</div>
+
+
+        <!-- 3. Leave Channel -->
+        <div id="leave">
+          <h3>Leave Channel</h3>
+          <div class="card p-4 mb-4">
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Channel Link</label>
+                <input type="text" class="form-control" placeholder="https://t.me/yourchannel">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Accounts to Leave</label>
+                <input type="number" class="form-control" placeholder="e.g. 50">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Time Interval</label>
+                <select class="form-select">
+                  <option>1 minute</option>
+                  <option>2 hours</option>
+                  <option>3 hours</option>
+                </select>
+              </div>
+              <button class="btn btn-warning">Start Leaving</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- 4. Mute/Unmute -->
+        <div id="mute">
+          <h3>Mute/Unmute Channels</h3>
+          <div class="card p-4 mb-4">
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Channel Link</label>
+                <input type="text" class="form-control" placeholder="https://t.me/yourchannel">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Action</label>
+                <select class="form-select">
+                  <option>Mute</option>
+                  <option>Unmute</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Number of Accounts</label>
+                <input type="number" class="form-control" placeholder="e.g. 100">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Duration</label>
+                <select class="form-select">
+                  <option>1 minute</option>
+                  <option>2 hours</option>
+                  <option>1 day</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary">Apply</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- 5. Add Views -->
+        <div id="views">
+          <h3>Add Views to Post</h3>
+          <div class="card p-4 mb-4">
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Channel Link</label>
+                <input type="text" class="form-control" placeholder="https://t.me/yourchannel">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Post Message ID</label>
+                <input type="number" class="form-control" placeholder="e.g. 12345">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Time Delay</label>
+                <input type="text" class="form-control" placeholder="e.g. 5s, 10s, 1m">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Run Duration</label>
+                <select class="form-select">
+                  <option>1 minute</option>
+                  <option>2 days</option>
+                  <option>3 days</option>
+                </select>
+              </div>
+              <button class="btn btn-info">Activate Views</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- 6. Live Session -->
+        <div id="live">
+          <h3>Live Session Manager</h3>
+          <div class="card p-4 mb-4">
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Channel Link</label>
+                <input type="text" class="form-control" placeholder="https://t.me/yourchannel">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Accounts to Join</label>
+                <input type="number" class="form-control" placeholder="e.g. 100">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Join Time</label>
+                <input type="datetime-local" class="form-control">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Leave Time</label>
+                <input type="datetime-local" class="form-control">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Raise Hand Count</label>
+                <input type="number" class="form-control" placeholder="e.g. 10">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Raise Hand Delay</label>
+                <input type="text" class="form-control" placeholder="e.g. 5m after join">
+              </div>
+              <button class="btn btn-dark">Start Live Interaction</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- 7. All Accounts -->
+        <div class="accountList" id="Accounts">
+          <h3>All Accounts</h3>
+          <div class="card p-4 mb-4">
+            <div id="accountList"></div> <!-- Add this line -->
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("show");
+    }
+
+    // Load account list
+    async function loadAccounts() {
+  const res = await fetch('/api/accounts');
+  const data = await res.json();
+  const list = document.getElementById('accountList');
+  list.innerHTML = '';
+
+  data.forEach(acc => {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div><strong>${acc.phoneNumber}</strong> — ${acc.username || 'N/A'}</div>
+        <button class="btn btn-sm btn-danger" onclick="removeAccount('${acc._id}')">Remove</button>
+      </div>
+    `;
+    list.appendChild(div);
+  }); // ✅ This line was missing
+}
+
+
+      // Send code to phone
+      async function sendCode(e) {
+        e.preventDefault();
+        const phone = document.getElementById('phone').value;
+        const res = await fetch('/api/send-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: phone })
+        });
+        const data = await res.json();
+        alert(data.message);
+      }
+
+      // Verify and save account
+      
+async function verifyCode(event) {
+  event.preventDefault(); // ✅ Prevent form from reloading
+
+console.log("Add Account clicked");
+
+  const phone = document.getElementById('phone').value;
+  const code = document.getElementById('otp').value;
+  const passwordInput = document.getElementById('password');
+  const password = passwordInput ? passwordInput.value : '';
+
+  if (!phone || !code) {
+    alert('Please enter both phone number and OTP.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone, code, password })
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    if (data.success) {
+      loadAccounts(); // ✅ Reload account list
+    }
+  } catch (err) {
+    console.error('Verify error:', err);
+    alert('Failed to verify and add account.');
+  }
+}
+
+
+      // Remove account + leave channel
+      function removeAccount(accountId, phoneNumber) {
+        const channelLink = document.getElementById('channelLink')?.value || '';
+        fetch(`/api/accounts/${accountId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelLink, phoneNumber })
+        })
+          .then(res => res.json())
+          .then(data => {
+            alert(data.message);
+            loadAccounts();
+          });
+      }
+
+      // Join channel
+      async function joinChannel(e) {
+        e.preventDefault();
+        const channelLink = document.getElementById('channelLink').value;
+        const numberOfAccounts = document.getElementById('accountCount').value;
+        const joinDelayMinutes = document.getElementById('joinDelay').value;
+        const stayDays = document.getElementById('stayDays').value;
+
+        const res = await fetch('/api/join-channel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelLink, numberOfAccounts, joinDelayMinutes, stayDays })
+        });
+
+        const data = await res.json();
+        alert(data.message);
+      }
+
+
+window.addEventListener('DOMContentLoaded', loadAccounts);
+
+  </script>
+</body>
+
+</html>
