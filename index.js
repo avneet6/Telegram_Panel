@@ -17,7 +17,7 @@ console.log('Attempting to connect to MongoDB with URI:', process.env.MONGODB_UR
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000,
+  serverSelectionTimeoutMS:3600000,
 })
 
 .then(() => console.log('MongoDB connected successfully!'))
@@ -51,7 +51,7 @@ app.post('/api/send-code', async (req, res) => {
   }
 
   try {
-    const stringSession = new StringSession('');
+    const stringSession = new StringSession(process.env.TELEGRAM_SESSION || '');
     const client = new TelegramClient(stringSession, apiId, apiHash, { connectionRetries: 5 });
 
     await client.connect();
