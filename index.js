@@ -12,9 +12,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect('mongodb://localhost:27017/telegramAccountsDB', {
+console.log('Attempting to connect to MongoDB with URI:', process.env.MONGODB_URI);
+
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000,
+})
+
+.then(() => console.log('MongoDB connected successfully!'))
+.catch(err => {
+    console.error('MongoDB connection error:', err);
 });
 
 const accountSchema = new mongoose.Schema({
