@@ -17,6 +17,7 @@
     "mongoose": "^8.16.1",
     "node-telegram-bot-api": "^0.66.0",
     "readline-sync": "^1.4.10",
+    "router": "^2.2.0",
     "telegram": "^2.26.22"
   },
   "engines": {

@@ -124,124 +124,115 @@
           </div>
         </div>
 
-<!-- Channel Link -->
-    
-       <div class="card p-4 mb-4">
-  <h4 class="mb-3 join">Join Channel</h4>
-  <form onsubmit="joinChannel(event)">
-    
-    <div class="mb-3">
-      <label for="channelLink" class="form-label">Channel Link</label>
-      <input
-        type="url"
-        class="form-control"
-        id="channelLink"
-        placeholder="https://t.me/yourchannel"
-        required
-      />
-    </div>
+        <!-- Channel Link -->
 
-    <!-- Number of Accounts -->
-    <div class="mb-3">
-      <label for="accountCount" class="form-label">Number of Accounts</label>
-      <input
-        type="number"
-        class="form-control"
-        id="accountCount"
-        min="1"
-        placeholder="e.g. 10"
-        required
-      />
-    </div>
+        <div class="card p-4 mb-4" id="join">
+          <h4 class="mb-3 join">Join Channel</h4>
+          <form onsubmit="joinChannel(event)">
 
-    <!-- Delay Between Joins -->
-    <div class="mb-3">
-      <label for="joinDelay" class="form-label">Delay Between Joins</label>
-      <select class="form-select" id="joinDelay" required>
-        <option value="1">1 minutes</option>
-        <option value="2">2 minutes</option>
-        <option value="5">5 minutes</option>
-        <option value="10">10 minutes</option>
-      </select>
-    </div>
+            <div class="mb-3">
+              <label for="channelLink" class="form-label">Channel Link</label>
+              <input type="url" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel" required />
+            </div>
 
-    <!-- Stay Duration -->
-    <div class="mb-3">
-      <label for="stayDays" class="form-label">Stay Duration</label>
-      <select class="form-select" id="stayDays" required>
-        <option value="2">2 minutes</option>
-        <option value="0.01">15 minutes</option>
-        <option value="0.041">1 hour</option>
-        <option value="1">1 day</option>
-        <option value="3">3 days</option>
-        <option value="7">7 days</option>
-      </select>
-    </div>
+            <!-- Number of Accounts -->
+            <div class="mb-3">
+              <label for="accountCount" class="form-label">Number of Accounts</label>
+              <input type="number" class="form-control" id="accountCount" min="1" placeholder="e.g. 10" required />
+            </div>
 
-    <!-- Start Button -->
-    <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
-  </form>
-</div>
+            <!-- Delay Between Joins -->
+            <div class="mb-3">
+              <label for="joinDelay" class="form-label">Delay Between Joins</label>
+              <select class="form-select" id="joinDelay" required>
+                <option value="1">1 minutes</option>
+                <option value="2">2 minutes</option>
+                <option value="5">5 minutes</option>
+                <option value="10">10 minutes</option>
+              </select>
+            </div>
+
+            <!-- Stay Duration -->
+            <div class="mb-3">
+              <label for="stayDays" class="form-label">Stay Duration</label>
+              <select class="form-select" id="stayDays" required>
+                <option value="2">2 minutes</option>
+                <option value="0.01">15 minutes</option>
+                <option value="0.041">1 hour</option>
+                <option value="1">1 day</option>
+                <option value="3">3 days</option>
+                <option value="7">7 days</option>
+              </select>
+            </div>
+
+            <!-- Start Button -->
+            <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
+          </form>
+        </div>
 
 
         <!-- 3. Leave Channel -->
         <div id="leave">
           <h3>Leave Channel</h3>
           <div class="card p-4 mb-4">
-            <form>
+            <form onsubmit="startLeaveChannel(event)">
               <div class="mb-3">
                 <label class="form-label">Channel Link</label>
-                <input type="text" class="form-control" placeholder="https://t.me/yourchannel">
+                <input type="text" id="leaveChannelLink" class="form-control" placeholder="https://t.me/yourchannel" required>
               </div>
               <div class="mb-3">
                 <label class="form-label">Accounts to Leave</label>
-                <input type="number" class="form-control" placeholder="e.g. 50">
+                <input type="number" id="leaveCount" class="form-control" placeholder="e.g. 50" required>
               </div>
               <div class="mb-3">
                 <label class="form-label">Time Interval</label>
-                <select class="form-select">
-                  <option>1 minute</option>
-                  <option>2 hours</option>
-                  <option>3 hours</option>
+                <select class="form-select" id="leaveInterval" required>
+                  <option value="60">1 minute</option>
+                  <option value="60">1 hours</option>
+                  <option value="120">2 hours</option>
                 </select>
               </div>
-              <button class="btn btn-warning">Start Leaving</button>
+              <button id="startLeaveBtn" type="submit" class="btn btn-warning">Start Leaving</button>
+              <div id="leaveStatus" class="mt-3 text-muted"></div>
             </form>
           </div>
         </div>
 
         <!-- 4. Mute/Unmute -->
-        <div id="mute">
+        <div class="card p-4 mb-4" id="mute">
           <h3>Mute/Unmute Channels</h3>
-          <div class="card p-4 mb-4">
-            <form>
+          <form>
               <div class="mb-3">
-                <label class="form-label">Channel Link</label>
-                <input type="text" class="form-control" placeholder="https://t.me/yourchannel">
+                <label class="form-label" for="channelLink">Channel Link</label>
+                <input type="text" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel"
+                  required>
               </div>
+                
               <div class="mb-3">
-                <label class="form-label">Action</label>
-                <select class="form-select">
-                  <option>Mute</option>
-                  <option>Unmute</option>
+                <label class="form-label" for="muteAction">Action</label>
+                <select class="form-select" id="muteAction" required>
+                  <option value="mute">Mute</option>
+                  <option value="Unmute">Unmute</option>
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Number of Accounts</label>
-                <input type="number" class="form-control" placeholder="e.g. 100">
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Duration</label>
-                <select class="form-select">
-                  <option>1 minute</option>
-                  <option>2 hours</option>
-                  <option>1 day</option>
+                <label class="form-label" for="muteDuration">Duration</label>
+                <select class="form-select" id="muteDuration" required>
+                  <option value="60">1 minute</option>
+                  <option value="7200">2 hours</option>
+                  <option value="86400">1 day</option>
                 </select>
               </div>
-              <button class="btn btn-secondary">Apply</button>
+              <div class="mb-3">
+    <label class="form-label" for="numAccounts">Select Number of Accounts</label>
+    <input type="number" id="numAccounts" class="form-control" min="1" required />
+  </div>
+
+              <button onclick="startMuteUnmute()" id="startMuteBtn" class="btn btn-secondary">Apply</button>
+              <span id="muteStatus" class="text-muted ms-2"></span>
             </form>
           </div>
-        </div>
+        
 
         <!-- 5. Add Views -->
         <div id="views">
@@ -327,109 +318,180 @@
 
     // Load account list
     async function loadAccounts() {
-  const res = await fetch('/api/accounts');
-  const data = await res.json();
-  const list = document.getElementById('accountList');
-  list.innerHTML = '';
+      const res = await fetch('/api/accounts');
+      const data = await res.json();
+      const list = document.getElementById('accountList');
+      list.innerHTML = '';
 
-  data.forEach(acc => {
-    const div = document.createElement('div');
-    div.innerHTML = `
+      data.forEach(acc => {
+        const div = document.createElement('div');
+        div.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div><strong>${acc.phoneNumber}</strong> — ${acc.username || 'N/A'}</div>
         <button class="btn btn-sm btn-danger" onclick="removeAccount('${acc._id}')">Remove</button>
       </div>
     `;
-    list.appendChild(div);
-  }); // ✅ This line was missing
-}
-
-
-      // Send code to phone
-      async function sendCode(e) {
-        e.preventDefault();
-        const phone = document.getElementById('phone').value;
-        const res = await fetch('/api/send-code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: phone })
-        });
-        const data = await res.json();
-        alert(data.message);
-      }
-
-      // Verify and save account
-      
-async function verifyCode(event) {
-  event.preventDefault(); // ✅ Prevent form from reloading
-
-console.log("Add Account clicked");
-
-  const phone = document.getElementById('phone').value;
-  const code = document.getElementById('otp').value;
-  const passwordInput = document.getElementById('password');
-  const password = passwordInput ? passwordInput.value : '';
-
-  if (!phone || !code) {
-    alert('Please enter both phone number and OTP.');
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/verify-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber: phone, code, password })
-    });
-
-    const data = await res.json();
-    alert(data.message);
-
-    if (data.success) {
-      loadAccounts(); // ✅ Reload account list
+        list.appendChild(div);
+      }); // ✅ This line was missing
     }
-  } catch (err) {
-    console.error('Verify error:', err);
-    alert('Failed to verify and add account.');
-  }
-}
 
 
-      // Remove account + leave channel
-      function removeAccount(accountId, phoneNumber) {
-        const channelLink = document.getElementById('channelLink')?.value || '';
-        fetch(`/api/accounts/${accountId}`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelLink, phoneNumber })
-        })
-          .then(res => res.json())
-          .then(data => {
-            alert(data.message);
-            loadAccounts();
-          });
+    // Send code to phone
+    async function sendCode(e) {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value;
+      const res = await fetch('/api/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phone })
+      });
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    // Verify and save account
+
+    async function verifyCode(event) {
+      event.preventDefault(); // ✅ Prevent form from reloading
+
+      console.log("Add Account clicked");
+
+      const phone = document.getElementById('phone').value;
+      const code = document.getElementById('otp').value;
+      const passwordInput = document.getElementById('password');
+      const password = passwordInput ? passwordInput.value : '';
+
+      if (!phone || !code) {
+        alert('Please enter both phone number and OTP.');
+        return;
       }
 
-      // Join channel
-      async function joinChannel(e) {
-        e.preventDefault();
-        const channelLink = document.getElementById('channelLink').value;
-        const numberOfAccounts = document.getElementById('accountCount').value;
-        const joinDelayMinutes = document.getElementById('joinDelay').value;
-        const stayDays = document.getElementById('stayDays').value;
-
-        const res = await fetch('/api/join-channel', {
+      try {
+        const res = await fetch('/api/verify-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelLink, numberOfAccounts, joinDelayMinutes, stayDays })
+          body: JSON.stringify({ phoneNumber: phone, code, password })
         });
 
         const data = await res.json();
         alert(data.message);
+
+        if (data.success) {
+          loadAccounts(); // ✅ Reload account list
+        }
+      } catch (err) {
+        console.error('Verify error:', err);
+        alert('Failed to verify and add account.');
       }
+    }
 
 
-window.addEventListener('DOMContentLoaded', loadAccounts);
+    // Remove account + leave channel
+    function removeAccount(accountId, phoneNumber) {
+      const channelLink = document.getElementById('channelLink')?.value || '';
+      fetch(`/api/accounts/${accountId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelLink, phoneNumber })
+      })
+        .then(res => res.json())
+        .then(data => {
+          alert(data.message);
+          loadAccounts();
+        });
+    }
+
+    // Join channel
+    async function joinChannel(e) {
+      e.preventDefault();
+      const channelLink = document.getElementById('channelLink').value;
+      const numberOfAccounts = document.getElementById('accountCount').value;
+      const joinDelayMinutes = document.getElementById('joinDelay').value;
+      const stayDays = document.getElementById('stayDays').value;
+
+      const res = await fetch('/api/join-channel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelLink, numberOfAccounts, joinDelayMinutes, stayDays })
+      });
+
+      const data = await res.json();
+      alert(data.message);
+    }
+
+    //Start leave channel
+
+    async function startLeaveChannel() {
+    const link = document.getElementById('leaveChannelLink').value.trim();
+    const count = parseInt(document.getElementById('leaveCount').value);
+    const interval = parseInt(document.getElementById('leaveInterval').value);
+    const status = document.getElementById('leaveStatus');
+
+    if (!link || isNaN(count) || isNaN(interval)) {
+      status.innerText = '❌ Please enter valid inputs.';
+      return;
+    }
+
+    status.innerText = '⏳ Sending leave request...';
+
+    try {
+      const res = await fetch('/api/leave-channel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelLink: link, count, intervalMinutes: interval })
+      });
+
+      const data = await res.json();
+      status.innerText = data.message || '✅ Leave process started.';
+    } catch (err) {
+      console.error('Leave error:', err);
+      status.innerText = '❌ Network or server error.';
+    }
+  }
+
+
+    // Start mute/unmute action
+async function startMuteUnmute() {
+    const channelLink = document.getElementById('channelLink').value.trim();
+    const action = document.getElementById('muteAction').value;
+    const duration = parseInt(document.getElementById('muteDuration').value);
+    const count = parseInt(document.getElementById('numAccounts').value);
+    const statusEl = document.getElementById('muteStatus');
+    const button = document.getElementById('startMuteBtn');
+
+    // Validate inputs
+    if (!channelLink || !action || isNaN(duration) || isNaN(count) || count <= 0) {
+      statusEl.innerText = '❌ Please fill all fields correctly.';
+      return;
+    }
+
+    // Disable button and show loading status
+    button.disabled = true;
+    statusEl.innerText = '⏳ Processing... Please wait.';
+
+    try {
+      const res = await fetch('/api/mute-unmute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelLink, action, duration, count })
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        statusEl.innerText = `❌ ${result.message || 'Something went wrong.'}`;
+      } else {
+        statusEl.innerText = `✅ ${result.message || 'Action completed successfully.'}`;
+      }
+    } catch (err) {
+      console.error('Mute/Unmute request failed:', err);
+      statusEl.innerText = '❌ Network error. Please try again later.';
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+    window.addEventListener('DOMContentLoaded', loadAccounts);
 
   </script>
 </body>
