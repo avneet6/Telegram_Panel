@@ -286,7 +286,7 @@ app.delete('/api/accounts/:id', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Account not found.' });
         }
 
-        // Optional: Leave the channel before deletion if a channelLink is provided
+        // Leave the channel before deletion if a channelLink is provided
         if (channelLink && channelLink.trim()) {
             try {
                 client = new TelegramClient(new StringSession(account.stringSession), apiId, apiHash, { connectionRetries: 3 });
@@ -333,7 +333,7 @@ app.post('/api/join-channel', async (req, res) => {
         return res.status(400).json({ success: false, message: 'No accounts available to join channels.' });
     }
 
-    res.json({ success: true, message: 'Join process initiated. Check server console for progress.' });
+    res.json({ success: true, message: 'Join process initiated.' });
 
     accounts.forEach((acc, index) => {
         const delayMs = index * Number(joinDelayMinutes) * 60 * 1000;
@@ -363,8 +363,7 @@ app.post('/api/join-channel', async (req, res) => {
                             20000, // Increased timeout for import
                             `ImportChatInvite timeout for ${acc.phoneNumber}`
                         );
-                        // imported.chats[0] might not always exist or be correct.
-                        // Use the returned chat/channel from the import directly.
+                        
                         if (imported.chats && imported.chats.length > 0) {
                              inputChannel = await client.getInputEntity(imported.chats[0]);
                              joinedEntityTitle = imported.chats[0].title || 'Private Channel';
@@ -536,29 +535,38 @@ app.post('/api/leave-channel', async (req, res) => {
       }
     }
 
-    const selected = joinedAccounts.slice(0, count);
-    const intervalMs = intervalMinutes * 1 * 1000;
+   const selectedAccounts = joinedAccounts.slice(0, count);
+const intervalMs = intervalMinutes * 60 * 1000;
 
-    selected.forEach(({ acc, inputChannel }, index) => {
-      setTimeout(async () => {
-        const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, { connectionRetries: 3 });
+selectedAccounts.forEach(({ acc, inputChannel }, index) => {
+  const delay = index * intervalMs;
 
-        try {
-          await client.connect();
-          await client.invoke(new Api.channels.LeaveChannel({ channel: inputChannel }));
-          console.log(`[LEAVE] ${acc.phoneNumber} left channel after ${index * intervalMinutes} min`);
-        } catch (err) {
-          console.error(`[LEAVE ERROR] ${acc.phoneNumber}:`, err.message);
-        } finally {
-          await client.disconnect();
-        }
-      }, index * intervalMs);
-    });
+  setTimeout(() => {
+    (async () => {
+      const client = new TelegramClient(
+        new StringSession(acc.stringSession),
+        apiId,
+        apiHash,
+        { connectionRetries: 3 }
+      );
 
-    res.json({
-      success: true,
-      message: `Scheduled ${selected.length} account(s) to leave the channel every ${intervalMinutes} minute(s).`
-    });
+      try {
+        await client.connect();
+        await client.invoke(new Api.channels.LeaveChannel({ channel: inputChannel }));
+        console.log(`[LEAVE] ${acc.phoneNumber} left the channel at T+${index * intervalMinutes} minutes`);
+      } catch (err) {
+        console.error(`[LEAVE ERROR] ${acc.phoneNumber}:`, err.message);
+      } finally {
+        await client.disconnect();
+      }
+    })(); // Immediately invoked async function
+  }, delay);
+});
+
+
+
+    res.json({ success: true, message: `Scheduled ${selectedAccounts.length} accounts to leave at ${intervalMinutes} min intervals.` });
+
 
   } catch (err) {
     console.error('Leave channel error:', err.message);

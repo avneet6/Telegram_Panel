@@ -187,7 +187,7 @@
               <div class="mb-3">
                 <label class="form-label">Time Interval</label>
                 <select class="form-select" id="leaveInterval" required>
-                  <option value="60">1 minute</option>
+                  <option value="1">1 minute</option>
                   <option value="60">1 hours</option>
                   <option value="120">2 hours</option>
                 </select>
@@ -243,10 +243,7 @@
                 <label class="form-label">Channel Link</label>
                 <input type="text" class="form-control" placeholder="https://t.me/yourchannel">
               </div>
-              <div class="mb-3">
-                <label class="form-label">Post Message ID</label>
-                <input type="number" class="form-control" placeholder="e.g. 12345">
-              </div>
+              
               <div class="mb-3">
                 <label class="form-label">Time Delay</label>
                 <input type="text" class="form-control" placeholder="e.g. 5s, 10s, 1m">
@@ -332,7 +329,7 @@
       </div>
     `;
         list.appendChild(div);
-      }); // ✅ This line was missing
+      }); 
     }
 
 
@@ -352,7 +349,7 @@
     // Verify and save account
 
     async function verifyCode(event) {
-      event.preventDefault(); // ✅ Prevent form from reloading
+      event.preventDefault(); 
 
       console.log("Add Account clicked");
 
@@ -377,7 +374,7 @@
         alert(data.message);
 
         if (data.success) {
-          loadAccounts(); // ✅ Reload account list
+          loadAccounts(); 
         }
       } catch (err) {
         console.error('Verify error:', err);
@@ -428,11 +425,11 @@
     const status = document.getElementById('leaveStatus');
 
     if (!link || isNaN(count) || isNaN(interval)) {
-      status.innerText = '❌ Please enter valid inputs.';
+      status.innerText = ' Please enter valid inputs.';
       return;
     }
 
-    status.innerText = '⏳ Sending leave request...';
+    status.innerText = ' Sending leave request...';
 
     try {
       const res = await fetch('/api/leave-channel', {
@@ -442,10 +439,10 @@
       });
 
       const data = await res.json();
-      status.innerText = data.message || '✅ Leave process started.';
+      status.innerText = data.message || 'Leave process started.';
     } catch (err) {
       console.error('Leave error:', err);
-      status.innerText = '❌ Network or server error.';
+      status.innerText = 'Network or server error.';
     }
   }
 
@@ -461,13 +458,13 @@ async function startMuteUnmute() {
 
     // Validate inputs
     if (!channelLink || !action || isNaN(duration) || isNaN(count) || count <= 0) {
-      statusEl.innerText = '❌ Please fill all fields correctly.';
+      statusEl.innerText = 'Please fill all fields correctly.';
       return;
     }
 
     // Disable button and show loading status
     button.disabled = true;
-    statusEl.innerText = '⏳ Processing... Please wait.';
+    statusEl.innerText = ' Processing... Please wait.';
 
     try {
       const res = await fetch('/api/mute-unmute', {
@@ -479,13 +476,13 @@ async function startMuteUnmute() {
       const result = await res.json();
 
       if (!res.ok) {
-        statusEl.innerText = `❌ ${result.message || 'Something went wrong.'}`;
+        statusEl.innerText = ` ${result.message || 'Something went wrong.'}`;
       } else {
-        statusEl.innerText = `✅ ${result.message || 'Action completed successfully.'}`;
+        statusEl.innerText = ` ${result.message || 'Action completed successfully.'}`;
       }
     } catch (err) {
       console.error('Mute/Unmute request failed:', err);
-      statusEl.innerText = '❌ Network error. Please try again later.';
+      statusEl.innerText = ' Network error. Please try again later.';
     } finally {
       button.disabled = false;
     }
