@@ -6,11 +6,12 @@ const { StringSession } = require('telegram/sessions');
 const { Api } = require('telegram');
 require('dotenv').config();
 const path = require('path');
+const moment = require('moment');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 console.log('Attempting to connect to MongoDB with URI:', process.env.MONGODB_URI);
 
@@ -75,9 +76,7 @@ async function getChannelEntity(client, channelLinkOrId) {
     if (/^-?\d+$/.test(link)) {
         // Try to resolve as channel ID
         try {
-            // Telegram channel IDs are usually negative, but can be positive in some cases
-            // Try both InputPeerChannel and InputChannel
-            // You may need to know the access_hash, but for joined channels, getInputEntity should work
+            
             return await client.getInputEntity(Number(link));
         } catch (idErr) {
             throw new Error(`Could not resolve channel from ID: ${link} (${idErr.message})`);
@@ -171,8 +170,6 @@ app.post('/api/send-code', async (req, res) => {
 
     let client;
     try {
-        // Create a new StringSession for each client to avoid conflicts if multiple users are logging in
-        // For a panel where accounts are added one by one, an empty session is fine initially.
         const stringSession = new StringSession('');
         client = new TelegramClient(stringSession, apiId, apiHash, { connectionRetries: 5 });
 
@@ -211,8 +208,7 @@ app.post('/api/send-code', async (req, res) => {
         console.error('[ERROR] Failed to send code:', err);
         res.status(500).json({ success: false, message: 'Failed to send code.' });
     } finally {
-        // IMPORTANT: Do NOT disconnect here. The client needs to stay connected for verify-code.
-        // It will be disconnected after successful verification or if an error occurs there.
+        
     }
 });
 
@@ -274,9 +270,6 @@ app.post('/api/verify-code', async (req, res) => {
 // Route to remove an account
 app.delete('/api/accounts/:id', async (req, res) => {
     const { id } = req.params;
-    // channelLink is not actually used in the frontend removeAccount call,
-    // so this feature might not be fully functional unless you modify the frontend to send it.
-    // Keeping the logic here in case you implement it later.
     const { channelLink } = req.body; // Optional: for leaving a channel before deletion
 
     let client;
@@ -657,6 +650,97 @@ if (action === 'mute' && duration > 0) {
     res.status(500).json({ success: false, message: 'Failed to process mute/unmute request.' });
   }
 });
+
+
+
+// Route to add views to a post in a channel
+app.post('/api/add-views', async (req, res) => {
+  const { channelLink, timeDelay, runMinutes } = req.body;
+
+  if (!channelLink || !timeDelay || !runMinutes) {
+    return res.status(400).json({ success: false, message: 'Missing parameters.' });
+  }
+
+  let delayMs;
+  try {
+    delayMs = parseDurationToMs(timeDelay);
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+
+  try {
+    const accounts = await Account.find();
+    const postId = await getLatestPostIdFromChannel(channelLink, accounts[0]);
+    const selectedAccounts = accounts.slice(0, 50); // Use max 50 accounts or adjust as needed
+
+    selectedAccounts.forEach((acc, index) => {
+      const timeout = index * delayMs;
+      setTimeout(async () => {
+        const client = new TelegramClient(
+          new StringSession(acc.stringSession),
+          apiId,
+          apiHash,
+          { connectionRetries: 3 }
+        );
+
+        try {
+          await client.connect();
+          const inputChannel = await getChannelEntity(client, channelLink);
+
+          await client.invoke(
+            new Api.messages.GetMessagesViews({
+              peer: inputChannel,
+              id: [postId],
+              increment: true
+            })
+          );
+          console.log(`[VIEWS] ${acc.phoneNumber} viewed message ID ${postId}`);
+        } catch (err) {
+          console.warn(`[VIEW ERROR] ${acc.phoneNumber} →`, err.message);
+        } finally {
+          await client.disconnect();
+        }
+      }, timeout);
+    });
+
+    return res.json({ success: true, message: `Scheduled ${selectedAccounts.length} views.` });
+
+  } catch (error) {
+    console.error('[VIEWS ROUTE ERROR]:', error);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// Duration Parsing Helper
+function parseDurationToMs(str) {
+  if (typeof str !== 'string') str = String(str);
+  str = str.trim().toLowerCase();
+
+  if (str.endsWith('s')) return parseInt(str) * 1000;
+  if (str.endsWith('m')) return parseInt(str) * 60 * 1000;
+
+  throw new Error(`Invalid time format: ${str}`);
+}
+
+// Helper to get latest post ID
+async function getLatestPostIdFromChannel(channelLink, account) {
+  const client = new TelegramClient(
+    new StringSession(account.stringSession),
+    apiId,
+    apiHash,
+    { connectionRetries: 3 }
+  );
+  await client.connect();
+  try {
+    const inputChannel = await getChannelEntity(client, channelLink);
+    const messages = await client.getMessages(inputChannel, { limit: 1 });
+    if (messages.length > 0) return messages[0].id;
+    throw new Error('No messages found in channel.');
+  } finally {
+    await client.disconnect();
+  }
+}
+
 
 
 
