@@ -741,6 +741,122 @@ async function getLatestPostIdFromChannel(channelLink, account) {
   }
 }
 
+//live Session
+
+app.post('/api/live-session', async (req, res) => {
+  const {
+    channelLink,
+    accountCount,
+    joinTime,
+    leaveTime,
+    raiseHandCount,
+    raiseHandDelay
+  } = req.body;
+
+  try {
+    const allAccounts = await Account.find();
+    const usableAccounts = [];
+
+    // Filter accounts that are already in the channel
+    for (const acc of allAccounts) {
+      const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
+        connectionRetries: 3,
+      });
+
+      try {
+        await client.connect();
+        const inputChannel = await getChannelEntity(client, channelLink);
+
+        // Check if account is participant
+        await client.invoke(new Api.channels.GetParticipant({
+          channel: inputChannel,
+          participant: 'me',
+        }));
+
+        usableAccounts.push({ acc, inputChannel });
+      } catch (err) {
+        if (!err.message.includes('USER_NOT_PARTICIPANT')) {
+          console.warn(`[SKIP] ${acc.phoneNumber}: ${err.message}`);
+        }
+      } finally {
+        await client.disconnect();
+      }
+    }
+
+    const selected = usableAccounts.slice(0, accountCount);
+    if (selected.length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid accounts found in the channel.' });
+    }
+
+    const joinDelay = Math.max(0, moment(joinTime).valueOf() - Date.now());
+    const leaveDelay = Math.max(0, moment(leaveTime).valueOf() - Date.now());
+    const raiseDelayMs = parseDelayToMs(raiseHandDelay);
+
+    // Schedule session
+    setTimeout(() => {
+      selected.forEach(({ acc, inputChannel }, index) => {
+        (async () => {
+          const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
+            connectionRetries: 3,
+          });
+
+          try {
+            await client.connect();
+            console.log(`[LIVE JOIN] ${acc.phoneNumber} joined ${channelLink}`);
+
+            // Raise Hand simulation (send emoji message)
+            if (index < raiseHandCount) {
+              setTimeout(async () => {
+                try {
+                  await client.sendMessage(inputChannel, { message: '[👋] Raised Hand' });
+                  console.log(`[HAND RAISE] ${acc.phoneNumber}`);
+                } catch (err) {
+                  console.warn(`[HAND ERROR] ${acc.phoneNumber}: ${err.message}`);
+                }
+              }, raiseDelayMs);
+            }
+
+            // Schedule leave
+            setTimeout(async () => {
+              try {
+                await client.invoke(new Api.channels.LeaveChannel({ channel: inputChannel }));
+                console.log(`[LEFT LIVE] ${acc.phoneNumber}`);
+              } catch (err) {
+                console.warn(`[LEAVE ERROR] ${acc.phoneNumber}: ${err.message}`);
+              } finally {
+                await client.disconnect();
+              }
+            }, leaveDelay - joinDelay);
+
+          } catch (err) {
+            console.error(`[JOIN FAIL] ${acc.phoneNumber}: ${err.message}`);
+            await client.disconnect();
+          }
+        })();
+      });
+    }, joinDelay);
+
+    res.json({ success: true, message: `${selected.length} accounts scheduled for live session.` });
+
+  } catch (err) {
+    console.error('[LIVE SESSION ERROR]', err.message);
+    res.status(500).json({ success: false, message: 'Live session failed to schedule.' });
+  }
+});
+
+// Helper to convert delay strings like "5s", "2m"
+function parseDelayToMs(input) {
+  const match = input.match(/(\d+)\s*(s|m|h)/i);
+  if (!match) return 0;
+  const value = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+  if (unit === 's') return value * 1000;
+  if (unit === 'm') return value * 60 * 1000;
+  if (unit === 'h') return value * 60 * 60 * 1000;
+  return 0;
+}
+
+
 
 
 
