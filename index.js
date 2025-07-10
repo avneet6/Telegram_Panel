@@ -52,6 +52,22 @@ function withTimeout(promise, ms, errorMessage = 'Operation timed out') {
     return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
 }
 
+// Suppress unhandledRejection for TIMEOUT errors and also suppress after task completion
+function suppressTimeoutError(fn) {
+    return async function(...args) {
+        try {
+            await fn.apply(this, args);
+        } catch (err) {
+            if (err && err.message && err.message.includes('TIMEOUT')) {
+                console.warn('[Suppressed TIMEOUT after task]', err.message);
+                // Do not throw, just suppress
+            } else {
+                throw err;
+            }
+        }
+    };
+}
+
 // Suppress unhandled timeout error logs from updates.js to reduce noise
 process.on('unhandledRejection', (reason) => {
     if (reason && reason.message && reason.message.includes('TIMEOUT')) {
@@ -70,62 +86,73 @@ process.on('unhandledRejection', (reason) => {
  * @throws {Error} If the channel cannot be resolved or the link is invalid.
  */
 async function getChannelEntity(client, channelLinkOrId) {
-    const link = String(channelLinkOrId).trim();
+    let link = String(channelLinkOrId).trim();
 
-    // If it's a numeric ID, treat as channel ID
-    if (/^-?\d+$/.test(link)) {
-        // Try to resolve as channel ID
+    // 1. Handle t.me links (invite or username)
+    if (/^(https?:\/\/)?t\.me\//i.test(link)) {
+        link = link.replace(/^(https?:\/\/)?t\.me\//i, '').trim();
+        // If it's an invite link (starts with + or joinchat)
+        if (link.startsWith('+') || link.startsWith('joinchat/')) {
+            const inviteHash = link.replace('joinchat/', '').replace('+', '').split('?')[0];
+            try {
+                // Try to import/join if not already joined
+                return await client.getInputEntity(link);
+            } catch (resolveErr) {
+                try {
+                    const checkedInvite = await client.invoke(
+                        new Api.messages.CheckChatInvite({ hash: inviteHash })
+                    );
+                    if (checkedInvite instanceof Api.ChatInvite) {
+                        throw new Error(`Invite valid, but account has not joined the channel.`);
+                    }
+                    return await client.getInputEntity(checkedInvite.chat || checkedInvite.channel);
+                } catch (checkErr) {
+                    throw new Error(`Could not resolve channel from invite link: ${link} (${checkErr.message})`);
+                }
+            }
+        } else {
+            // It's a username after t.me/
+            const username = link.replace('@', '').split('?')[0];
+            try {
+                return await client.getInputEntity(username);
+            } catch (userErr) {
+                throw new Error(`Could not resolve channel from username: @${username} (${userErr.message})`);
+            }
+        }
+    }
+
+    // 2. Handle joinchat or + invite links directly
+    if (link.includes('joinchat') || link.startsWith('+')) {
+        const inviteHash = link.replace('joinchat/', '').replace('+', '').split('?')[0];
         try {
-            
+            return await client.getInputEntity(link);
+        } catch (resolveErr) {
+            try {
+                const checkedInvite = await client.invoke(
+                    new Api.messages.CheckChatInvite({ hash: inviteHash })
+                );
+                if (checkedInvite instanceof Api.ChatInvite) {
+                    throw new Error(`Invite valid, but account has not joined the channel.`);
+                }
+                return await client.getInputEntity(checkedInvite.chat || checkedInvite.channel);
+            } catch (checkErr) {
+                throw new Error(`Could not resolve channel from invite link: ${link} (${checkErr.message})`);
+            }
+        }
+    }
+
+    // 3. Handle numeric channel ID
+    if (/^-?\d+$/.test(link)) {
+        try {
             return await client.getInputEntity(Number(link));
         } catch (idErr) {
             throw new Error(`Could not resolve channel from ID: ${link} (${idErr.message})`);
         }
     }
 
-    // If it's a username (starts with @ or is just a word)
+    // 4. Handle username (starts with @ or is just a word)
     if (link.startsWith('@') || /^[a-zA-Z0-9_]{5,}$/.test(link)) {
         const username = link.replace('@', '').trim();
-        try {
-            return await client.getInputEntity(username);
-        } catch (userErr) {
-            throw new Error(`Could not resolve channel from username: @${username} (${userErr.message})`);
-        }
-    }
-
-    // If it's a join link (joinchat/+hash)
-    if (link.includes('joinchat') || link.includes('+')) {
-  try {
-    // Try directly resolving the link — works if already joined
-    return await client.getInputEntity(link);
-  } catch (resolveErr) {
-    const inviteHash = link.split('/').pop().replace('+', '');
-    try {
-      const checkedInvite = await client.invoke(
-        new Api.messages.CheckChatInvite({ hash: inviteHash })
-      );
-
-      if (checkedInvite instanceof Api.ChatInvite) {
-        // Not a participant — cannot mute/unmute
-        throw new Error(`Invite valid, but account has not joined the channel.`);
-      }
-
-      return await client.getInputEntity(checkedInvite.chat || checkedInvite.channel);
-    } catch (checkErr) {
-      throw new Error(`Could not resolve channel from invite link: ${link}`);
-    }
-  }
-}
-
-
-    // If it's a t.me/username link
-    if (link.startsWith('https://t.me/') || link.startsWith('http://t.me/') || link.startsWith('t.me/')) {
-        const username = link
-            .replace('https://t.me/', '')
-            .replace('http://t.me/', '')
-            .replace('t.me/', '')
-            .replace('@', '')
-            .trim();
         try {
             return await client.getInputEntity(username);
         } catch (userErr) {
@@ -150,7 +177,7 @@ app.get('/api/accounts', async (req, res) => {
 });
 
 // Route to send OTP code to a phone number
-app.post('/api/send-code', async (req, res) => {
+app.post('/api/send-code', suppressTimeoutError(async (req, res) => {
     const { phoneNumber } = req.body;
 
     if (!phoneNumber || typeof phoneNumber !== 'string') {
@@ -210,10 +237,10 @@ app.post('/api/send-code', async (req, res) => {
     } finally {
         
     }
-});
+}));
 
 // Route to verify OTP/password and save account
-app.post('/api/verify-code', async (req, res) => {
+app.post('/api/verify-code', suppressTimeoutError(async (req, res) => {
     const { phoneNumber, code, password } = req.body;
     const pending = PendingClient.get(phoneNumber);
 
@@ -262,13 +289,18 @@ app.post('/api/verify-code', async (req, res) => {
         res.status(500).json({ success: false, message: `Verification failed: ${error.message || 'Unknown error'}` });
     } finally {
         if (client && client.connected) {
-            await client.disconnect(); // Disconnect client after verification attempt
+            await client.disconnect();
+            try {
+                await client.destroy();
+            } catch (e) {
+                // Ignore destroy errors
+            }
         }
     }
-});
+}));
 
 // Route to remove an account
-app.delete('/api/accounts/:id', async (req, res) => {
+app.delete('/api/accounts/:id', suppressTimeoutError(async (req, res) => {
     const { id } = req.params;
     const { channelLink } = req.body; // Optional: for leaving a channel before deletion
 
@@ -303,6 +335,11 @@ app.delete('/api/accounts/:id', async (req, res) => {
             } finally {
                 if (client && client.connected) {
                     await client.disconnect();
+                    try {
+                        await client.destroy();
+                    } catch (e) {
+                        // Ignore destroy errors
+                    }
                 }
             }
         }
@@ -315,10 +352,10 @@ app.delete('/api/accounts/:id', async (req, res) => {
         console.error('Error removing account (ID:', id, '):', err.message);
         res.status(500).json({ success: false, message: `Failed to remove account: ${err.message}` });
     }
-});
+}));
 
 // Route to join a channel
-app.post('/api/join-channel', async (req, res) => {
+app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
     const { channelLink, numberOfAccounts, joinDelayMinutes, stayDays } = req.body;
 
     const accounts = await Account.find().limit(Number(numberOfAccounts));
@@ -486,17 +523,52 @@ app.post('/api/join-channel', async (req, res) => {
                 }
             } finally {
                 if (client && client.connected) {
-                    await client.disconnect(); // Ensure client disconnects after join attempt
+                    await client.disconnect();
+                    try {
+                        await client.destroy();
+                    } catch (e) {
+                        // Ignore destroy errors
+                    }
+        try {
+            await client.destroy();
+        } catch (e) {
+            // Ignore destroy errors
+        }
+        try {
+            await client.destroy();
+        } catch (e) {
+            // Ignore destroy errors
+        }
+        try {
+            await client.destroy();
+        } catch (e) {
+            // Ignore destroy errors
+        }
+        try {
+            await client.destroy();
+        } catch (e) {
+            // Ignore destroy errors
+        }
+        try {
+            await client.destroy();
+        } catch (e) {
+            // Ignore destroy errors
+        }
+        try {
+            await client.destroy();
+        } catch (e) {
+            // Ignore destroy errors
+        }
                 }
             }
         }, delayMs);
     });
-});
+}));
 
 
 //Leave a channel
 
-app.post('/api/leave-channel', async (req, res) => {
+app.post('/api/leave-channel', suppressTimeoutError(async (req, res) => {
   const { channelLink, count, intervalMinutes } = req.body;
 
   try {
@@ -525,6 +597,11 @@ app.post('/api/leave-channel', async (req, res) => {
         }
       } finally {
         await client.disconnect();
+        try {
+          await client.destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
       }
     }
 
@@ -551,6 +628,11 @@ selectedAccounts.forEach(({ acc, inputChannel }, index) => {
         console.error(`[LEAVE ERROR] ${acc.phoneNumber}:`, err.message);
       } finally {
         await client.disconnect();
+        try {
+          await client.destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
       }
     })(); // Immediately invoked async function
   }, delay);
@@ -565,11 +647,11 @@ selectedAccounts.forEach(({ acc, inputChannel }, index) => {
     console.error('Leave channel error:', err.message);
     res.status(500).json({ success: false, message: 'Server error while processing leave channel.' });
   }
-});
+}));
 
 
 //  mute/unmute accounts in a channel
-app.post('/api/mute-unmute', async (req, res) => {
+app.post('/api/mute-unmute', suppressTimeoutError(async (req, res) => {
   const { channelLink, action, duration, count } = req.body;
 
   try {
@@ -649,12 +731,12 @@ if (action === 'mute' && duration > 0) {
     console.error('Mute/Unmute error:', error);
     res.status(500).json({ success: false, message: 'Failed to process mute/unmute request.' });
   }
-});
+}));
 
 
 
 // Route to add views to a post in a channel
-app.post('/api/add-views', async (req, res) => {
+app.post('/api/add-views', suppressTimeoutError(async (req, res) => {
   const { channelLink, timeDelay, runMinutes } = req.body;
 
   if (!channelLink || !timeDelay || !runMinutes) {
@@ -709,7 +791,7 @@ app.post('/api/add-views', async (req, res) => {
     console.error('[VIEWS ROUTE ERROR]:', error);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
-});
+}));
 
 // Duration Parsing Helper
 function parseDurationToMs(str) {
@@ -743,7 +825,7 @@ async function getLatestPostIdFromChannel(channelLink, account) {
 
 //live Session
 
-app.post('/api/live-session', async (req, res) => {
+app.post('/api/live-session', suppressTimeoutError(async (req, res) => {
   const {
     channelLink,
     accountCount,
@@ -842,7 +924,7 @@ app.post('/api/live-session', async (req, res) => {
     console.error('[LIVE SESSION ERROR]', err.message);
     res.status(500).json({ success: false, message: 'Live session failed to schedule.' });
   }
-});
+}));
 
 // Helper to convert delay strings like "5s", "2m"
 function parseDelayToMs(input) {
@@ -855,11 +937,6 @@ function parseDelayToMs(input) {
   if (unit === 'h') return value * 60 * 60 * 1000;
   return 0;
 }
-
-
-
-
-
 
 
 // Serve the index.html file
