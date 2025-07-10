@@ -452,13 +452,17 @@
     const data = await res.json();
 
     if (data.success) {
-      alert(' Joining initiated successfully! ' + data.message);
+      // Show popup immediately
+      alert('Joining process started!');
+      // Optionally, you can implement polling here to check for completion and show another popup when done.
+      // Example:
+      // pollJoinStatus();
     } else {
-      alert(' Failed to start join task: ' + data.message);
+      alert('Failed to start join task: ' + data.message);
     }
 
   } catch (error) {
-    alert(' Request failed: ' + error.message);
+    alert('Request failed: ' + error.message);
   } finally {
     button.innerText = originalText;
     button.disabled = false;

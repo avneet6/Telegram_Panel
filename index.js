@@ -371,20 +371,16 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
             let client;
             try {
                 console.log(`[JOIN] Processing ${acc.phoneNumber}...`);
-
                 client = new TelegramClient(
                     new StringSession(acc.stringSession),
                     apiId,
                     apiHash,
                     { connectionRetries: 3 }
                 );
-
                 await withTimeout(client.connect(), 15000, `Connection timeout for ${acc.phoneNumber}`);
-
                 const link = channelLink.trim();
                 let inputChannel;
-                let joinedEntityTitle = 'Unknown Channel'; // Default for logging
-
+                let joinedEntityTitle = 'Unknown Channel';
                 if (link.includes('joinchat') || link.includes('+')) {
                     const inviteHash = link.split('/').pop().replace('+', '');
                     try {
@@ -393,12 +389,10 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                             20000, // Increased timeout for import
                             `ImportChatInvite timeout for ${acc.phoneNumber}`
                         );
-                        
                         if (imported.chats && imported.chats.length > 0) {
-                             inputChannel = await client.getInputEntity(imported.chats[0]);
-                             joinedEntityTitle = imported.chats[0].title || 'Private Channel';
+                            inputChannel = await client.getInputEntity(imported.chats[0]);
+                            joinedEntityTitle = imported.chats[0].title || 'Private Channel';
                         } else if (imported.updates && imported.updates.length > 0) {
-                            // Sometimes updates contain the new peer
                             const newPeer = imported.updates.find(u => u.className === 'UpdateNewChannel' || u.className === 'UpdateNewChat');
                             if (newPeer && newPeer.channel) {
                                 inputChannel = await client.getInputEntity(newPeer.channel);
@@ -412,11 +406,9 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                         } else {
                             throw new Error('ImportChatInvite returned no usable chat/channel entity.');
                         }
-
                     } catch (err) {
                         if (err.errorMessage && err.errorMessage.includes('USER_ALREADY_PARTICIPANT')) {
                             console.log(`[JOIN - ${acc.phoneNumber}] Already in channel: ${link}. Skipping join.`);
-                            // If already a participant, try to get the entity directly
                             try {
                                 inputChannel = await withTimeout(getChannelEntity(client, link), 10000, `Get existing entity timeout for ${acc.phoneNumber}`);
                                 const existingEntity = await client.getEntity(inputChannel);
@@ -430,7 +422,6 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                         }
                     }
                 } else {
-                    // Use the helper for public channels/usernames
                     inputChannel = await withTimeout(
                         getChannelEntity(client, channelLink),
                         15000,
@@ -439,13 +430,9 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                     const publicEntity = await client.getEntity(inputChannel);
                     joinedEntityTitle = publicEntity.title || 'Public Channel';
                 }
-
-                // If inputChannel is still not defined at this point, something went wrong
                 if (!inputChannel) {
                     throw new Error('Failed to obtain a valid channel entity for joining.');
                 }
-
-                // Attempt to join the channel
                 try {
                     await withTimeout(
                         client.invoke(new Api.channels.JoinChannel({ channel: inputChannel })),
@@ -453,7 +440,6 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                         `JoinChannel timeout for ${acc.phoneNumber}`
                     );
                     console.log(`[JOIN - ${acc.phoneNumber}] Successfully joined channel: ${joinedEntityTitle}`);
-                    // After joining, fetch and log the channel's username or ID for future reference
                     try {
                         const joinedEntity = await client.getEntity(inputChannel);
                         if (joinedEntity.username) {
@@ -471,9 +457,6 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                         throw joinErr; // Re-throw other join errors
                     }
                 }
-
-
-                // Make the channel visible in the app
                 try {
                     await client.getMessages(inputChannel, { limit: 1 });
                     await client.invoke(new Api.messages.ReadHistory({ peer: inputChannel }));
@@ -481,10 +464,8 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                 } catch (readErr) {
                     console.warn(`[JOIN - ${acc.phoneNumber}] ReadHistory skipped for ${joinedEntityTitle} due to:`, readErr.message);
                 }
-
                 const leaveDelay = Number(stayDays) * 2 * 60 * 1000;
-
-                if (leaveDelay > 0) { // Only schedule leave if stayDays is meaningful
+                if (leaveDelay > 0) {
                     setTimeout(() => {
                         const leaveClient = new TelegramClient(
                             new StringSession(acc.stringSession),
@@ -492,11 +473,10 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                             apiHash,
                             { connectionRetries: 3 }
                         );
-
                         (async () => {
                             try {
                                 await withTimeout(leaveClient.connect(), 15000, `Reconnect timeout for leave (${acc.phoneNumber})`);
-                                const leaveChannelEntity = await leaveClient.getInputEntity(inputChannel); // Use inputChannel directly here
+                                const leaveChannelEntity = await leaveClient.getInputEntity(inputChannel);
                                 await withTimeout(
                                     leaveClient.invoke(new Api.channels.LeaveChannel({ channel: leaveChannelEntity })),
                                     15000,
@@ -513,9 +493,8 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
                         })();
                     }, leaveDelay);
                 } else {
-                     console.log(`[JOIN - ${acc.phoneNumber}] No leave scheduled for ${joinedEntityTitle} (stayDays set to 0).`);
+                    console.log(`[JOIN - ${acc.phoneNumber}] No leave scheduled for ${joinedEntityTitle} (stayDays set to 0).`);
                 }
-
             } catch (err) {
                 console.error(`[JOIN - ${acc.phoneNumber}] Overall error during join process for ${channelLink}:`, err.message);
                 if (err.errorMessage && err.errorMessage.includes('USER_ALREADY_PARTICIPANT')) {
@@ -524,41 +503,7 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
             } finally {
                 if (client && client.connected) {
                     await client.disconnect();
-                    try {
-                        await client.destroy();
-                    } catch (e) {
-                        // Ignore destroy errors
-                    }
-        try {
-            await client.destroy();
-        } catch (e) {
-            // Ignore destroy errors
-        }
-        try {
-            await client.destroy();
-        } catch (e) {
-            // Ignore destroy errors
-        }
-        try {
-            await client.destroy();
-        } catch (e) {
-            // Ignore destroy errors
-        }
-        try {
-            await client.destroy();
-        } catch (e) {
-            // Ignore destroy errors
-        }
-        try {
-            await client.destroy();
-        } catch (e) {
-            // Ignore destroy errors
-        }
-        try {
-            await client.destroy();
-        } catch (e) {
-            // Ignore destroy errors
-        }
+                    try { await client.destroy(); } catch (e) {}
                 }
             }
         }, delayMs);
