@@ -126,53 +126,52 @@
 
         <!-- Channel Link -->
 
-        <div class="card p-4 mb-4" id="join">
-          <h4 class="mb-3 join">Join Channel</h4>
-          <form onsubmit="joinChannel(event)">
+      <div class="card p-4 mb-4" id="join">
+  <h4 class="mb-3">Join Channel</h4>
+  <form onsubmit="joinChannel(event)">
+    <div class="mb-3">
+      <label for="channelLink" class="form-label">Channel Link</label>
+      <input type="url" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel" required />
+    </div>
 
-            <div class="mb-3">
-              <label for="channelLink" class="form-label">Channel Link</label>
-              <input type="url" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel" required />
-            </div>
+    <div class="mb-3">
+      <label for="accountCount" class="form-label">Number of Accounts</label>
+      <input type="number" class="form-control" id="accountCount" min="1" placeholder="e.g. 10" required />
+    </div>
 
-            <!-- Number of Accounts -->
-            <div class="mb-3">
-              <label for="accountCount" class="form-label">Number of Accounts</label>
-              <input type="number" class="form-control" id="accountCount" min="1" placeholder="e.g. 10" required />
-            </div>
+    <div class="mb-3">
+      <label for="joinDelay" class="form-label">Delay Between Joins</label>
+      <select class="form-select" id="joinDelay" required>
+        <option value="1">1 minute</option>
+        <option value="2">2 minutes</option>
+        <option value="5">5 minutes</option>
+        <option value="7">7 minutes</option>
+        <option value="10">10 minutes</option>
+        <option value="20">20 minutes</option>
+        <option value="60">1 hour</option>
+      </select>
+    </div>
 
-            <!-- Delay Between Joins -->
-            <div class="mb-3">
-              <label for="joinDelay" class="form-label">Delay Between Joins</label>
-              <select class="form-select" id="joinDelay" required>
-                <option value="1">1 minute</option>
-                <option value="2">2 minutes</option>
-                <option value="5">5 minutes</option>
-                <option value="7">7 minutes</option>
-                <option value="10">10 minutes</option>
-                <option value="20">20 minutes</option>
-                <option value="60">1 hour</option>
-              </select>
-            </div>
+    <div class="mb-3">
+      <label for="stayDays" class="form-label">Stay Duration</label>
+      <select class="form-select" id="stayDays" required>
+        <option value="720">1 day</option>
+        <option value="5040">7 days</option>
+        <option value="10080">14 days</option>
+        <option value="21600">30 days</option>
+        <option value="32400">45 days</option>
+        <option value="43200">60 days</option>
+      </select>
+    </div>
 
-            <!-- Stay Duration -->
-            <div class="mb-3">
-              <label for="stayDays" class="form-label">Stay Duration</label>
-              <select class="form-select" id="stayDays" required>
-                <option value="720">1 day</option>
-                <option value="5040">7 days</option>
-                <option value="10080">14 days</option>
-                <option value="21600">30 days</option>
-                <option value="32400">45 days</option>
-                <option value="43200">60 day</option>
-                
-              </select>
-            </div>
+    <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
+  </form>
 
-            <!-- Start Button -->
-            <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
-          </form>
-        </div>
+ 
+</div>
+  
+  
+
 
 
         <!-- 3. Leave Channel -->
@@ -307,7 +306,7 @@
               </div>
               <div class="mb-3">
                 <label for="liveRaiseDelay" class="form-label">Raise Hand Delay</label>
-                <input type="text" class="form-control" id="liveRaiseDelay" placeholder="e.g. 5m after join" required>
+                <input type="text" class="form-control" id="liveRaiseDelay" placeholder="e.g. 5s,10s after join" required>
               </div>
               <button type="submit" id="startLiveBtn" class="btn btn-dark">Start Live Interaction</button>
               <span id="liveStatus" class="text-muted mt-2 d-block"></span>
@@ -419,7 +418,7 @@
     }
 
     // Join channel
-    async function joinChannel(e) {
+  async function joinChannel(e) {
   e.preventDefault();
 
   const channelLink = document.getElementById('channelLink').value.trim();
@@ -466,7 +465,8 @@
   }
 }
 
-    //Start leave channel
+
+//Start leave channel
 
     async function startLeaveChannel() {
     const link = document.getElementById('leaveChannelLink').value.trim();
@@ -570,13 +570,14 @@ async function activateViews(event) {
 }
 
 // Start Live Session
+ 
   async function startLiveSession(event) {
     event.preventDefault();
 
     const channelLink = document.getElementById('liveChannelLink').value.trim();
     const accountCount = parseInt(document.getElementById('liveAccountCount').value);
-    const joinTime = new Date(document.getElementById('liveJoinTime').value);
-    const leaveTime = new Date(document.getElementById('liveLeaveTime').value);
+    const joinTime = document.getElementById('liveJoinTime').value;
+    const leaveTime = document.getElementById('liveLeaveTime').value;
     const raiseCount = parseInt(document.getElementById('liveRaiseCount').value);
     const raiseDelay = document.getElementById('liveRaiseDelay').value.trim();
 
@@ -586,29 +587,35 @@ async function activateViews(event) {
       joinTime,
       leaveTime,
       raiseCount,
-      raiseDelay,
+      raiseDelay
     };
 
     try {
-      const res = await fetch('/api/start-live-session', {
+      const response = await fetch('/api/live-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
-
-      if (data.success) {
-        // ✅ Show a popup message
-        alert("✅ Live interaction process has started successfully!");
-        document.getElementById("liveStatus").innerText = "Live session started...";
+      if (response.ok) {
+        //  Show success message
+        document.getElementById('liveStatus').innerText = 'Live session started successfully!';
+        alert(' Live session started successfully!');
+        document.getElementById('liveSessionForm').reset();
       } else {
-        alert("❌ Failed to start live session: " + data.message);
+        const data = await response.json();
+        document.getElementById('liveStatus').innerText = ' Error: ' + (data.message || 'Something went wrong');
+        alert(' Failed to start live session. Check console for errors.');
       }
     } catch (error) {
-      alert("❌ Network error: " + error.message);
+      console.error('Live session error:', error);
+      document.getElementById('liveStatus').innerText = ' Network or server error.';
+      alert(' Network or server error. Check the console.');
     }
   }
+
 
 
 
