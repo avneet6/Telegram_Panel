@@ -420,21 +420,51 @@
 
     // Join channel
     async function joinChannel(e) {
-      e.preventDefault();
-      const channelLink = document.getElementById('channelLink').value;
-      const numberOfAccounts = document.getElementById('accountCount').value;
-      const joinDelayMinutes = document.getElementById('joinDelay').value;
-      const stayDays = document.getElementById('stayDays').value;
+  e.preventDefault();
 
-      const res = await fetch('/api/join-channel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelLink, numberOfAccounts, joinDelayMinutes, stayDays })
-      });
+  const channelLink = document.getElementById('channelLink').value.trim();
+  const numberOfAccounts = document.getElementById('accountCount').value.trim();
+  const joinDelayMinutes = document.getElementById('joinDelay').value.trim();
+  const stayDays = document.getElementById('stayDays').value.trim();
 
-      const data = await res.json();
-      alert(data.message);
+  if (!channelLink || !numberOfAccounts || !joinDelayMinutes || !stayDays) {
+    alert('Please fill in all fields.');
+    return;
+  }
+
+  // Show temporary message
+  const button = document.getElementById('startJoinBtn') || e.submitter;
+  const originalText = button.innerText;
+  button.innerText = 'Joining...';
+  button.disabled = true;
+
+  try {
+    const res = await fetch('/api/join-channel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channelLink,
+        numberOfAccounts,
+        joinDelayMinutes,
+        stayDays
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert(' Joining initiated successfully! ' + data.message);
+    } else {
+      alert(' Failed to start join task: ' + data.message);
     }
+
+  } catch (error) {
+    alert(' Request failed: ' + error.message);
+  } finally {
+    button.innerText = originalText;
+    button.disabled = false;
+  }
+}
 
     //Start leave channel
 

@@ -448,7 +448,6 @@ app.post('/api/join-channel', async (req, res) => {
                 const leaveDelay = Number(stayDays) * 2 * 60 * 1000;
 
                 if (leaveDelay > 0) { // Only schedule leave if stayDays is meaningful
-                    console.log(`[JOIN - ${acc.phoneNumber}] Scheduling leave for ${joinedEntityTitle} in ${stayDays} days.`);
                     setTimeout(() => {
                         const leaveClient = new TelegramClient(
                             new StringSession(acc.stringSession),
@@ -493,6 +492,7 @@ app.post('/api/join-channel', async (req, res) => {
         }, delayMs);
     });
 });
+
 
 //Leave a channel
 
