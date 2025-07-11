@@ -126,51 +126,51 @@
 
         <!-- Channel Link -->
 
-      <div class="card p-4 mb-4" id="join">
-  <h4 class="mb-3">Join Channel</h4>
-  <form onsubmit="joinChannel(event)">
-    <div class="mb-3">
-      <label for="channelLink" class="form-label">Channel Link</label>
-      <input type="url" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel" required />
-    </div>
+        <div class="card p-4 mb-4" id="join">
+          <h4 class="mb-3">Join Channel</h4>
+          <form onsubmit="joinChannel(event)">
+            <div class="mb-3">
+              <label for="channelLink" class="form-label">Channel Link</label>
+              <input type="url" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel" required />
+            </div>
 
-    <div class="mb-3">
-      <label for="accountCount" class="form-label">Number of Accounts</label>
-      <input type="number" class="form-control" id="accountCount" min="1" placeholder="e.g. 10" required />
-    </div>
+            <div class="mb-3">
+              <label for="accountCount" class="form-label">Number of Accounts</label>
+              <input type="number" class="form-control" id="accountCount" min="1" placeholder="e.g. 10" required />
+            </div>
 
-    <div class="mb-3">
-      <label for="joinDelay" class="form-label">Delay Between Joins</label>
-      <select class="form-select" id="joinDelay" required>
-        <option value="1">1 minute</option>
-        <option value="2">2 minutes</option>
-        <option value="5">5 minutes</option>
-        <option value="7">7 minutes</option>
-        <option value="10">10 minutes</option>
-        <option value="20">20 minutes</option>
-        <option value="60">1 hour</option>
-      </select>
-    </div>
+            <div class="mb-3">
+              <label for="joinDelay" class="form-label">Delay Between Joins</label>
+              <select class="form-select" id="joinDelay" required>
+                <option value="1">1 minute</option>
+                <option value="2">2 minutes</option>
+                <option value="5">5 minutes</option>
+                <option value="7">7 minutes</option>
+                <option value="10">10 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="60">1 hour</option>
+              </select>
+            </div>
 
-    <div class="mb-3">
-      <label for="stayDays" class="form-label">Stay Duration</label>
-      <select class="form-select" id="stayDays" required>
-        <option value="720">1 day</option>
-        <option value="5040">7 days</option>
-        <option value="10080">14 days</option>
-        <option value="21600">30 days</option>
-        <option value="32400">45 days</option>
-        <option value="43200">60 days</option>
-      </select>
-    </div>
+            <div class="mb-3">
+              <label for="stayDays" class="form-label">Stay Duration</label>
+              <select class="form-select" id="stayDays" required>
+                <option value="720">1 day</option>
+                <option value="5040">7 days</option>
+                <option value="10080">14 days</option>
+                <option value="21600">30 days</option>
+                <option value="32400">45 days</option>
+                <option value="43200">60 days</option>
+              </select>
+            </div>
 
-    <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
-  </form>
+            <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
+          </form>
 
- 
-</div>
-  
-  
+
+        </div>
+
+
 
 
 
@@ -181,7 +181,8 @@
             <form onsubmit="startLeaveChannel(event)">
               <div class="mb-3">
                 <label class="form-label">Channel Link</label>
-                <input type="text" id="leaveChannelLink" class="form-control" placeholder="https://t.me/yourchannel" required>
+                <input type="text" id="leaveChannelLink" class="form-control" placeholder="https://t.me/yourchannel"
+                  required>
               </div>
               <div class="mb-3">
                 <label class="form-label">Accounts to Leave</label>
@@ -194,10 +195,10 @@
                   <option value="5">5 minutes</option>
                   <option value="15">15 minutes</option>
                   <option value="30">30 minutes</option>
-                  
+
                   <option value="60">1 hours</option>
                   <option value="120">2 hours</option>
-              
+
                   <option value="180">3 hours</option>
                 </select>
               </div>
@@ -208,47 +209,47 @@
         </div>
 
         <!-- 4. Mute/Unmute -->
-         <div class="card p-4 mb-4" id="mute">
+        <div class="card p-4 mb-4" id="mute">
           <h3>Mute/Unmute Channels</h3>
           <form>
-              <div class="mb-3">
-                <label class="form-label" for="channelLink">Channel Link</label>
-                <input type="text" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel"
-                  required>
-              </div>
-                
-              <div class="mb-3">
-                <label class="form-label" for="muteAction">Action</label>
-                <select class="form-select" id="muteAction" required>
-                  <option value="mute">Mute</option>
-                  <option value="Unmute">Unmute</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="muteDuration">Duration</label>
-                <select class="form-select" id="muteDuration" required>
-                  <option value="60">1 minute</option>
-                  <option value="120">2 minutes</option>
-                  <option value="300">5 minutes</option>
-                  <option value="600">10 minutes</option>
-                  <option value="1200">20 minutes</option>
-                  <option value="1800">30 minutes</option>
-                  <option value="3600">1 hour</option>
-                  <option value="7200">2 hours</option>
-                  <option value="86400">1 day</option>
-                </select>
-              </div>
-              <div class="mb-3">
-    <label class="form-label" for="numAccounts">Select Number of Accounts</label>
-    <input type="number" id="numAccounts" class="form-control" min="1" required />
-  </div>
+            <div class="mb-3">
+              <label class="form-label" for="channelLink">Channel Link</label>
+              <input type="text" class="form-control" id="channelLink" placeholder="https://t.me/yourchannel" required>
+            </div>
 
-              <button onclick="startMuteUnmute()" id="startMuteBtn" class="btn btn-secondary">Apply</button>
-              <span id="muteStatus" class="text-muted ms-2"></span>
-            </form>
-          </div>
-       
-        
+            <div class="mb-3">
+              <label class="form-label" for="muteAction">Action</label>
+              <select class="form-select" id="muteAction" required>
+                <option value="mute">Mute</option>
+                <option value="Unmute">Unmute</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="muteDuration">Duration</label>
+              <select class="form-select" id="muteDuration" required>
+                <option value="60">1 minute</option>
+                <option value="120">2 minutes</option>
+                <option value="300">5 minutes</option>
+                <option value="600">10 minutes</option>
+                <option value="1200">20 minutes</option>
+                <option value="1800">30 minutes</option>
+                <option value="3600">1 hour</option>
+                <option value="7200">2 hours</option>
+                <option value="86400">1 day</option>
+
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="numAccounts">Select Number of Accounts</label>
+              <input type="number" id="numAccounts" class="form-control" min="1" required />
+            </div>
+
+            <button onclick="startMuteUnmute()" id="startMuteBtn" class="btn btn-secondary">Apply</button>
+            <span id="muteStatus" class="text-muted ms-2"></span>
+          </form>
+        </div>
+
+
 
         <!-- 5. Add Views -->
         <div id="views">
@@ -257,9 +258,10 @@
             <form id="viewsForm" onsubmit="activateViews(event)">
               <div class="mb-3">
                 <label class="form-label" for="viewChannelLink">Channel Link</label>
-                <input type="url" class="form-control" id="viewChannelLink" placeholder="https://t.me/yourchannel" required>
+                <input type="url" class="form-control" id="viewChannelLink" placeholder="https://t.me/yourchannel"
+                  required>
               </div>
-              
+
               <div class="mb-3">
                 <label class="form-label" for="viewTimeDelay">Time Delay</label>
                 <input type="text" class="form-control" id="viewTimeDelay" placeholder="e.g. 5s, 10s, 1m" required>
@@ -287,7 +289,8 @@
             <form id="liveSessionForm" onsubmit="startLiveSession(event)">
               <div class="mb-3">
                 <label class="form-label" for="liveChannelLink">Channel Link</label>
-                <input type="text" class="form-control" id="liveChannelLink" placeholder="https://t.me/yourchannel" required>
+                <input type="text" class="form-control" id="liveChannelLink" placeholder="https://t.me/yourchannel"
+                  required>
               </div>
               <div class="mb-3">
                 <label for="liveAccountCount" class="form-label">Accounts to Join</label>
@@ -307,7 +310,8 @@
               </div>
               <div class="mb-3">
                 <label for="liveRaiseDelay" class="form-label">Raise Hand Delay</label>
-                <input type="text" class="form-control" id="liveRaiseDelay" placeholder="e.g. 5s,10s after join" required>
+                <input type="text" class="form-control" id="liveRaiseDelay" placeholder="e.g. 5s,10s after join"
+                  required>
               </div>
               <button type="submit" id="startLiveBtn" class="btn btn-dark">Start Live Interaction</button>
               <span id="liveStatus" class="text-muted mt-2 d-block"></span>
@@ -349,7 +353,7 @@
       </div>
     `;
         list.appendChild(div);
-      }); 
+      });
     }
 
 
@@ -369,7 +373,7 @@
     // Verify and save account
 
     async function verifyCode(event) {
-      event.preventDefault(); 
+      event.preventDefault();
 
       console.log("Add Account clicked");
 
@@ -394,7 +398,7 @@
         alert(data.message);
 
         if (data.success) {
-          loadAccounts(); 
+          loadAccounts();
         }
       } catch (err) {
         console.error('Verify error:', err);
@@ -419,211 +423,212 @@
     }
 
     // Join channel
-  async function joinChannel(e) {
-  e.preventDefault();
+    async function joinChannel(e) {
+      e.preventDefault();
 
-  const channelLink = document.getElementById('channelLink').value.trim();
-  const numberOfAccounts = document.getElementById('accountCount').value.trim();
-  const joinDelayMinutes = document.getElementById('joinDelay').value.trim();
-  const stayDays = document.getElementById('stayDays').value.trim();
+      const channelLink = document.getElementById('channelLink').value.trim();
+      const numberOfAccounts = document.getElementById('accountCount').value.trim();
+      const joinDelayMinutes = document.getElementById('joinDelay').value.trim();
+      const stayDays = document.getElementById('stayDays').value.trim();
 
-  if (!channelLink || !numberOfAccounts || !joinDelayMinutes || !stayDays) {
-    alert('Please fill in all fields.');
-    return;
-  }
+      if (!channelLink || !numberOfAccounts || !joinDelayMinutes || !stayDays) {
+        alert('Please fill in all fields.');
+        return;
+      }
 
-  // Show temporary message
-  const button = document.getElementById('startJoinBtn') || e.submitter;
-  const originalText = button.innerText;
-  button.innerText = 'Joining...';
-  button.disabled = true;
+      // Show temporary message
+      const button = document.getElementById('startJoinBtn') || e.submitter;
+      const originalText = button.innerText;
+      button.innerText = 'Joining...';
+      button.disabled = true;
 
-  try {
-    const res = await fetch('/api/join-channel', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        channelLink,
-        numberOfAccounts,
-        joinDelayMinutes,
-        stayDays
-      })
-    });
+      try {
+        const res = await fetch('/api/join-channel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelLink,
+            numberOfAccounts,
+            joinDelayMinutes,
+            stayDays
+          })
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (data.success) {
-      // Show popup immediately
-      alert('Joining process started!');
-      // Optionally, you can implement polling here to check for completion and show another popup when done.
-      // Example:
-      // pollJoinStatus();
-    } else {
-      alert('Failed to start join task: ' + data.message);
+        if (data.success) {
+          // Show popup immediately
+          alert('Joining process started!');
+          // Optionally, you can implement polling here to check for completion and show another popup when done.
+          // Example:
+          // pollJoinStatus();
+        } else {
+          alert('Failed to start join task: ' + data.message);
+        }
+
+      } catch (error) {
+        alert('Request failed: ' + error.message);
+      } finally {
+        button.innerText = originalText;
+        button.disabled = false;
+      }
     }
 
-  } catch (error) {
-    alert('Request failed: ' + error.message);
-  } finally {
-    button.innerText = originalText;
-    button.disabled = false;
-  }
-}
 
-
-//Start leave channel
+    //Start leave channel
 
     async function startLeaveChannel() {
-    const link = document.getElementById('leaveChannelLink').value.trim();
-    const count = parseInt(document.getElementById('leaveCount').value);
-    const interval = parseInt(document.getElementById('leaveInterval').value);
-    const status = document.getElementById('leaveStatus');
+      const link = document.getElementById('leaveChannelLink').value.trim();
+      const count = parseInt(document.getElementById('leaveCount').value);
+      const interval = parseInt(document.getElementById('leaveInterval').value);
+      const status = document.getElementById('leaveStatus');
 
-    if (!link || isNaN(count) || isNaN(interval)) {
-      status.innerText = ' Please enter valid inputs.';
-      return;
+      if (!link || isNaN(count) || isNaN(interval)) {
+        status.innerText = ' Please enter valid inputs.';
+        return;
+      }
+
+      status.innerText = ' Sending leave request...';
+
+      try {
+        const res = await fetch('/api/leave-channel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelLink: link, count, intervalMinutes: interval })
+        });
+
+        const data = await res.json();
+        status.innerText = data.message || 'Leave process started.';
+      } catch (err) {
+        console.error('Leave error:', err);
+        status.innerText = 'Network or server error.';
+      }
     }
-
-    status.innerText = ' Sending leave request...';
-
-    try {
-      const res = await fetch('/api/leave-channel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelLink: link, count, intervalMinutes: interval })
-      });
-
-      const data = await res.json();
-      status.innerText = data.message || 'Leave process started.';
-    } catch (err) {
-      console.error('Leave error:', err);
-      status.innerText = 'Network or server error.';
-    }
-  }
 
 
     // Start mute/unmute action
 
-async function startMuteUnmute() {
-    const channelLink = document.getElementById('channelLink').value.trim();
-    const action = document.getElementById('muteAction').value;
-    const duration = parseInt(document.getElementById('muteDuration').value);
-    const count = parseInt(document.getElementById('numAccounts').value);
-    const statusEl = document.getElementById('muteStatus');
-    const button = document.getElementById('startMuteBtn');
+    async function startMuteUnmute() {
+      const channelLink = document.getElementById('channelLink').value.trim();
+      const action = document.getElementById('muteAction').value;
+      const duration = parseInt(document.getElementById('muteDuration').value);
+      const count = parseInt(document.getElementById('numAccounts').value);
+      const statusEl = document.getElementById('muteStatus');
+      const button = document.getElementById('startMuteBtn');
 
-    // Validate inputs
-    if (!channelLink || !action || isNaN(duration) || isNaN(count) || count <= 0) {
-      statusEl.innerText = 'Please fill all fields correctly.';
-      return;
-    }
-
-    // Disable button and show loading status
-    button.disabled = true;
-    statusEl.innerText = ' Processing... Please wait.';
-
-    try {
-      const res = await fetch('/api/mute-unmute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelLink, action, duration, count })
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        statusEl.innerText = ` ${result.message || 'Something went wrong.'}`;
-      } else {
-        statusEl.innerText = ` ${result.message || 'Action completed successfully.'}`;
+      // Validate inputs
+      if (!channelLink || !action || isNaN(duration) || isNaN(count) || count <= 0) {
+        statusEl.innerText = 'Please fill all fields correctly.';
+        return;
       }
-    } catch (err) {
-      console.error('Mute/Unmute request failed:', err);
-      statusEl.innerText = ' Network error. Please try again later.';
-    } finally {
-      button.disabled = false;
-    }
-  }
 
+      // Disable button and show loading status
+      button.disabled = true;
+      statusEl.innerText = ' Processing... Please wait.';
 
+      try {
+        const res = await fetch('/api/mute-unmute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelLink, action, duration, count })
+        });
 
+        const result = await res.json();
 
-// Add Views to Post
-
-async function activateViews(event) {
-  event.preventDefault();
-
-  const channelLink = document.getElementById('viewChannelLink').value.trim();
-  const timeDelay = document.getElementById('viewTimeDelay').value.trim();
-  const runMinutes = parseInt(document.getElementById('viewDuration').value);
-
-  const status = document.getElementById('viewStatus');
-  status.textContent = ' Sending request...';
-
-  try {
-    const res = await fetch('/api/add-views', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelLink, timeDelay, runMinutes })
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      status.textContent = ` ${data.message}`;
-    } else {
-      status.textContent = ` ${data.message}`;
-    }
-  } catch (err) {
-    console.error('[VIEWS ERROR]', err);
-    status.textContent = ' Failed to activate views.';
-  }
-}
-
-// Start Live Session
- 
-  async function startLiveSession(event) {
-    event.preventDefault();
-
-    const channelLink = document.getElementById('liveChannelLink').value.trim();
-    const accountCount = parseInt(document.getElementById('liveAccountCount').value);
-    const joinTime = document.getElementById('liveJoinTime').value;
-    const leaveTime = document.getElementById('liveLeaveTime').value;
-    const raiseCount = parseInt(document.getElementById('liveRaiseCount').value);
-    const raiseDelay = document.getElementById('liveRaiseDelay').value.trim();
-
-    const payload = {
-      channelLink,
-      accountCount,
-      joinTime,
-      leaveTime,
-      raiseCount,
-      raiseDelay
-    };
-
-    try {
-      const response = await fetch('/api/live-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        //  Show success message
-        document.getElementById('liveStatus').innerText = 'Live session started successfully!';
-        alert(' Live session started successfully!');
-        document.getElementById('liveSessionForm').reset();
-      } else {
-        const data = await response.json();
-        document.getElementById('liveStatus').innerText = ' Error: ' + (data.message || 'Something went wrong');
-        alert(' Failed to start live session. Check console for errors.');
+        if (!res.ok) {
+          statusEl.innerText = ` ${result.message || 'Something went wrong.'}`;
+        } else {
+          statusEl.innerText = ` ${result.message || 'Action completed successfully.'}`;
+        }
+      } catch (err) {
+        console.error('Mute/Unmute request failed:', err);
+        statusEl.innerText = ' Network error. Please try again later.';
+      } finally {
+        button.disabled = false;
       }
-    } catch (error) {
-      console.error('Live session error:', error);
-      document.getElementById('liveStatus').innerText = ' Network or server error.';
-      alert(' Network or server error. Check the console.');
     }
-  }
+
+
+
+
+
+    // Add Views to Post
+
+    async function activateViews(event) {
+      event.preventDefault();
+
+      const channelLink = document.getElementById('viewChannelLink').value.trim();
+      const timeDelay = document.getElementById('viewTimeDelay').value.trim();
+      const runMinutes = parseInt(document.getElementById('viewDuration').value);
+
+      const status = document.getElementById('viewStatus');
+      status.textContent = ' Sending request...';
+
+      try {
+        const res = await fetch('/api/add-views', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelLink, timeDelay, runMinutes })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          status.textContent = ` ${data.message}`;
+        } else {
+          status.textContent = ` ${data.message}`;
+        }
+      } catch (err) {
+        console.error('[VIEWS ERROR]', err);
+        status.textContent = ' Failed to activate views.';
+      }
+    }
+
+    // Start Live Session
+
+    async function startLiveSession(event) {
+      event.preventDefault();
+
+      const channelLink = document.getElementById('liveChannelLink').value.trim();
+      const accountCount = parseInt(document.getElementById('liveAccountCount').value);
+      const joinTime = document.getElementById('liveJoinTime').value;
+      const leaveTime = document.getElementById('liveLeaveTime').value;
+      const raiseCount = parseInt(document.getElementById('liveRaiseCount').value);
+      const raiseDelay = document.getElementById('liveRaiseDelay').value.trim();
+
+      const payload = {
+        channelLink,
+        accountCount,
+        joinTime,
+        leaveTime,
+        raiseCount,
+        raiseDelay
+      };
+
+      try {
+        const response = await fetch('/api/live-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          //  Show success message
+          document.getElementById('liveStatus').innerText = 'Live session started successfully!';
+          alert(' Live session started successfully!');
+          document.getElementById('liveSessionForm').reset();
+        } else {
+          const data = await response.json();
+          document.getElementById('liveStatus').innerText = ' Error: ' + (data.message || 'Something went wrong');
+          alert(' Failed to start live session. Check console for errors.');
+        }
+      } catch (error) {
+        console.error('Live session error:', error);
+        document.getElementById('liveStatus').innerText = ' Network or server error.';
+        alert(' Network or server error. Check the console.');
+      }
+    }
 
 
 
@@ -631,7 +636,7 @@ async function activateViews(event) {
 
 
 
-  
+
 
     window.addEventListener('DOMContentLoaded', loadAccounts);
 
