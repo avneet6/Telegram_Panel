@@ -208,7 +208,7 @@
         </div>
 
         <!-- 4. Mute/Unmute -->
-        <div class="card p-4 mb-4" id="mute">
+         <div class="card p-4 mb-4" id="mute">
           <h3>Mute/Unmute Channels</h3>
           <form>
               <div class="mb-3">
@@ -247,6 +247,7 @@
               <span id="muteStatus" class="text-muted ms-2"></span>
             </form>
           </div>
+       
         
 
         <!-- 5. Add Views -->
@@ -502,6 +503,7 @@
 
 
     // Start mute/unmute action
+
 async function startMuteUnmute() {
     const channelLink = document.getElementById('channelLink').value.trim();
     const action = document.getElementById('muteAction').value;
@@ -541,6 +543,9 @@ async function startMuteUnmute() {
       button.disabled = false;
     }
   }
+
+
+
 
 // Add Views to Post
 
