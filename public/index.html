@@ -155,16 +155,18 @@
             <div class="mb-3">
               <label for="stayDays" class="form-label">Stay Duration</label>
               <select class="form-select" id="stayDays" required>
-                <option value="720">1 day</option>
-                <option value="5040">7 days</option>
-                <option value="10080">14 days</option>
-                <option value="21600">30 days</option>
-                <option value="32400">45 days</option>
-                <option value="43200">60 days</option>
+                <option value="1">1 day</option>
+                <option value="7">7 days</option>
+                <option value="14">14 days</option>
+                <option value="30">30 days</option>
+                <option value="45">45 days</option>
+                <option value="60">60 days</option>
               </select>
             </div>
 
             <button type="submit" class="btn btn-primary" id="startJoinBtn">Start Joining</button>
+            <div id="joinSummary" class="mt-3 p-3 bg-light border rounded"></div>
+
           </form>
 
 
@@ -175,9 +177,9 @@
 
 
         <!-- 3. Leave Channel -->
-        <div id="leave">
+        <div id="leave" class="card p-4 mb-4">
           <h3>Leave Channel</h3>
-          <div class="card p-4 mb-4">
+          <div class="card p-4 mb-3">
             <form onsubmit="startLeaveChannel(event)">
               <div class="mb-3">
                 <label class="form-label">Channel Link</label>
@@ -191,6 +193,7 @@
               <div class="mb-3">
                 <label class="form-label">Time Interval</label>
                 <select class="form-select" id="leaveInterval" required>
+                  <option value="1">1 minute</option>
                   <option value="2">2 minutes</option>
                   <option value="5">5 minutes</option>
                   <option value="15">15 minutes</option>
@@ -203,8 +206,9 @@
                 </select>
               </div>
               <button id="startLeaveBtn" type="submit" class="btn btn-warning">Start Leaving</button>
-              <div id="leaveStatus" class="mt-3 text-muted"></div>
-            </form>
+              <div id="leaveResultContainer" class="mt-3 p-3 bg-light border rounded">
+                </div>
+               </form>
           </div>
         </div>
 
@@ -227,15 +231,15 @@
             <div class="mb-3">
               <label class="form-label" for="muteDuration">Duration</label>
               <select class="form-select" id="muteDuration" required>
-                <option value="60">1 minute</option>
-                <option value="120">2 minutes</option>
-                <option value="300">5 minutes</option>
-                <option value="600">10 minutes</option>
-                <option value="1200">20 minutes</option>
-                <option value="1800">30 minutes</option>
-                <option value="3600">1 hour</option>
-                <option value="7200">2 hours</option>
-                <option value="86400">1 day</option>
+                <option value="1">1 minute</option>
+                <option value="2">2 minutes</option>
+                <option value="5">5 minutes</option>
+                <option value="10">10 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="1440">1 day</option>
 
               </select>
             </div>
@@ -424,89 +428,153 @@
 
     // Join channel
     async function joinChannel(e) {
-      e.preventDefault();
+  e.preventDefault();
 
-      const channelLink = document.getElementById('channelLink').value.trim();
-      const numberOfAccounts = document.getElementById('accountCount').value.trim();
-      const joinDelayMinutes = document.getElementById('joinDelay').value.trim();
-      const stayDays = document.getElementById('stayDays').value.trim();
+  // --- grab values ---
+  const channelLink      = document.getElementById('channelLink').value.trim();
+  const numberOfAccounts = document.getElementById('accountCount').value.trim();
+  const joinDelayMinutes = document.getElementById('joinDelay').value.trim();
+  const stayDays         = document.getElementById('stayDays').value.trim();
 
-      if (!channelLink || !numberOfAccounts || !joinDelayMinutes || !stayDays) {
-        alert('Please fill in all fields.');
-        return;
-      }
+  if (!channelLink || !numberOfAccounts || !joinDelayMinutes || !stayDays) {
+    alert('Please fill in all fields.');
+    return;
+  }
 
-      // Show temporary message
-      const button = document.getElementById('startJoinBtn') || e.submitter;
-      const originalText = button.innerText;
-      button.innerText = 'Joining...';
-      button.disabled = true;
+  // --- UI: disable button & show "Joining…" ---
+  const button = document.getElementById('startJoinBtn') || e.submitter;
+  const originalText = button.innerText;
+  button.innerText = 'Joining…';
+  button.disabled  = true;
 
-      try {
-        const res = await fetch('/api/join-channel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            channelLink,
-            numberOfAccounts,
-            joinDelayMinutes,
-            stayDays
-          })
+  try {
+    /* --- POST to your backend --- */
+    const res = await fetch('/api/join-channel', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({
+        channelLink,
+        numberOfAccounts,
+        joinDelayMinutes,
+        stayDays
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      /* --- Success popup --- */
+      alert('Joining process started!');
+
+      /* --- Render summary to the page --- */
+      const summaryBox = document.getElementById('joinSummary');
+      summaryBox.style.display = 'block';
+      summaryBox.innerHTML = `
+        <h5 class="mb-2"> Join Task Summary</h5>
+        <ul class="mb-2">
+          <li><strong>Channel Link:</strong> ${channelLink}</li>
+          <li><strong>Number of Accounts:</strong> ${numberOfAccounts}</li>
+          <li><strong>Delay Between Joins:</strong> ${joinDelayMinutes} minute(s)</li>
+          <li><strong>Stay Duration:</strong> ${stayDays} day(s)</li>
+        </ul>
+      `;
+
+      /* --- Show account details if available --- */
+      if (Array.isArray(data.accounts)) {
+        const accountList = document.createElement('ul');
+        data.accounts.forEach((acc, index) => {
+          const item = document.createElement('li');
+          item.textContent = `#${index + 1} - ${acc.username || acc.phone || 'Unknown Account'}`;
+          accountList.appendChild(item);
         });
-
-        const data = await res.json();
-
-        if (data.success) {
-          // Show popup immediately
-          alert('Joining process started!');
-          // Optionally, you can implement polling here to check for completion and show another popup when done.
-          // Example:
-          // pollJoinStatus();
-        } else {
-          alert('Failed to start join task: ' + data.message);
-        }
-
-      } catch (error) {
-        alert('Request failed: ' + error.message);
-      } finally {
-        button.innerText = originalText;
-        button.disabled = false;
+        const accountsTitle = document.createElement('h6');
+        accountsTitle.textContent = ' Accounts Used:';
+        summaryBox.appendChild(accountsTitle);
+        summaryBox.appendChild(accountList);
       }
+
+    } else {
+      alert('Failed to start join task: ' + (data.message || 'Unknown error'));
     }
+  } catch (err) {
+    alert('Request failed: ' + err.message);
+  } finally {
+    /* --- restore button --- */
+    button.innerText = originalText;
+    button.disabled  = false;
+  }
+}
+
 
 
     //Start leave channel
 
-    async function startLeaveChannel() {
-      const link = document.getElementById('leaveChannelLink').value.trim();
-      const count = parseInt(document.getElementById('leaveCount').value);
-      const interval = parseInt(document.getElementById('leaveInterval').value);
-      const status = document.getElementById('leaveStatus');
-
-      if (!link || isNaN(count) || isNaN(interval)) {
-        status.innerText = ' Please enter valid inputs.';
-        return;
-      }
-
-      status.innerText = ' Sending leave request...';
-
-      try {
-        const res = await fetch('/api/leave-channel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelLink: link, count, intervalMinutes: interval })
-        });
-
-        const data = await res.json();
-        status.innerText = data.message || 'Leave process started.';
-      } catch (err) {
-        console.error('Leave error:', err);
-        status.innerText = 'Network or server error.';
-      }
+  async function startLeaveChannel(event) {
+    event.preventDefault();
+    const link = document.getElementById('leaveChannelLink').value.trim();
+    const count = parseInt(document.getElementById('leaveCount').value);
+    const interval = parseInt(document.getElementById('leaveInterval').value);
+   
+    if (!link || !count || !interval) {
+      alert('Please fill in all fields correctly.');
+      return;
     }
+
+    //--UI: disable button & show "Sending leave request..."---
+    const button = document.getElementById('startLeaveBtn');
+    const originalText = button.innerText;
+    button.innerText = 'Sending leave request...';
+    button.disabled = true;
+
+    try {
+      const res = await fetch('/api/leave-channel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelLink: link, count, intervalMinutes: interval })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert('Leave request sent successfully!');
+        //Summary to the page
+        const summaryBox = document.getElementById('leaveResultContainer');
+        summaryBox.innerHTML = `
+          <h5 class="mb-2">Leave Task Summary</h5>
+          <ul class="mb-2">
+            <li><strong>Channel Link:</strong> ${link}</li>
+            <li><strong>Accounts to Leave:</strong> ${count}</li>
+            <li><strong>Time Interval:</strong> ${interval} minute(s)</li>
+          </ul>
+        `;
+        //Show account details if available
+        if (Array.isArray(data.accounts)) {
+          const accountList = document.createElement('ul');
+          data.accounts.forEach((acc, index) => {
+            const item = document.createElement('li');
+            item.textContent = `#${index + 1} - ${acc.username || acc.phone || 'Unknown Account'}`;
+            accountList.appendChild(item);
+          });
+          const accountsTitle = document.createElement('h6');
+          accountsTitle.textContent = ' Accounts Used:';
+          summaryBox.appendChild(accountsTitle);
+          summaryBox.appendChild(accountList);
+        }
+      } else {
+        alert('Failed to send leave request: ' + (data.message || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Request failed: ' + err.message);
+    } finally {
+      // Restore button
+      button.innerText = originalText;
+      button.disabled = false;
+    }
+  }
+
 
 
     // Start mute/unmute action
+
 
     async function startMuteUnmute() {
       const channelLink = document.getElementById('channelLink').value.trim();
@@ -535,14 +603,34 @@
 
         const result = await res.json();
 
-        if (!res.ok) {
-          statusEl.innerText = ` ${result.message || 'Something went wrong.'}`;
-        } else {
-          statusEl.innerText = ` ${result.message || 'Action completed successfully.'}`;
+        // Show alert with backend message
+        alert(result.message || (res.ok ? 'Action completed successfully.' : 'Something went wrong.'));
+
+        // Show summary below the form
+        let summaryBox = document.getElementById('muteSummaryBox');
+        if (!summaryBox) {
+          summaryBox = document.createElement('div');
+          summaryBox.id = 'muteSummaryBox';
+          summaryBox.className = 'mt-3 p-3 bg-light border rounded';
+          // Insert after muteStatus
+          const muteForm = document.getElementById('mute').querySelector('form');
+          muteForm.appendChild(summaryBox);
         }
+        summaryBox.innerHTML = `
+          <h5 class="mb-2">Mute/Unmute Task Summary</h5>
+          <ul class="mb-2">
+            <li><strong>Channel Link:</strong> ${channelLink}</li>
+            <li><strong>Action:</strong> ${action.charAt(0).toUpperCase() + action.slice(1)}</li>
+            <li><strong>Duration:</strong> ${duration} minute(s)</li>
+            <li><strong>Number of Accounts:</strong> ${count}</li>
+          </ul>
+        `;
+
+        statusEl.innerText = ` ${result.message || 'Action completed successfully.'}`;
       } catch (err) {
         console.error('Mute/Unmute request failed:', err);
         statusEl.innerText = ' Network error. Please try again later.';
+        alert('Network error. Please try again later.');
       } finally {
         button.disabled = false;
       }
@@ -572,19 +660,38 @@
         });
 
         const data = await res.json();
-        if (data.success) {
-          status.textContent = ` ${data.message}`;
-        } else {
-          status.textContent = ` ${data.message}`;
+
+        // Show alert with backend message
+        alert(data.message || (data.success ? 'Views scheduled.' : 'Something went wrong.'));
+
+        // Show summary below the form
+        let summaryBox = document.getElementById('viewsSummaryBox');
+        if (!summaryBox) {
+          summaryBox = document.createElement('div');
+          summaryBox.id = 'viewsSummaryBox';
+          summaryBox.className = 'mt-3 p-3 bg-light border rounded';
+          // Insert after viewStatus
+          const form = document.getElementById('viewsForm');
+          form.appendChild(summaryBox);
         }
+        summaryBox.innerHTML = `
+          <h5 class="mb-2">Add Views Task Summary</h5>
+          <ul class="mb-2">
+            <li><strong>Channel Link:</strong> ${channelLink}</li>
+            <li><strong>Time Delay:</strong> ${timeDelay}</li>
+            <li><strong>Run Duration:</strong> ${runMinutes} minute(s)</li>
+          </ul>
+        `;
+
+        status.textContent = ` ${data.message}`;
       } catch (err) {
         console.error('[VIEWS ERROR]', err);
         status.textContent = ' Failed to activate views.';
+        alert('Failed to activate views.');
       }
     }
 
     // Start Live Session
-
     async function startLiveSession(event) {
       event.preventDefault();
 
@@ -604,6 +711,16 @@
         raiseDelay
       };
 
+      const liveCard = document.getElementById('live');
+      let statusMsg = document.getElementById('liveStatusMsg');
+      if (!statusMsg) {
+        statusMsg = document.createElement('div');
+        statusMsg.id = 'liveStatusMsg';
+        statusMsg.style.display = 'none';
+        statusMsg.className = 'alert mt-2';
+        liveCard.insertBefore(statusMsg, liveCard.firstChild);
+      }
+
       try {
         const response = await fetch('/api/live-session', {
           method: 'POST',
@@ -613,22 +730,63 @@
           body: JSON.stringify(payload)
         });
 
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = {};
+        }
+
+        // Show styled status message at the top
         if (response.ok) {
-          //  Show success message
+          statusMsg.className = 'alert alert-success mt-2';
+          statusMsg.innerText = data.message || 'Live session started successfully!';
+          statusMsg.style.display = 'block';
+        } else {
+          statusMsg.className = 'alert alert-danger mt-2';
+          statusMsg.innerText = data.message || 'Failed to start live session.';
+          statusMsg.style.display = 'block';
+        }
+
+        // Show summary below the form
+        let summaryBox = document.getElementById('liveSummaryBox');
+        if (!summaryBox) {
+          summaryBox = document.createElement('div');
+          summaryBox.id = 'liveSummaryBox';
+          summaryBox.className = 'mt-3 p-3 bg-light border rounded';
+          const form = document.getElementById('liveSessionForm');
+          form.appendChild(summaryBox);
+        }
+        summaryBox.innerHTML = `
+          <h5 class="mb-2">Live Session Task Summary</h5>
+          <ul class="mb-2">
+            <li><strong>Channel Link:</strong> ${channelLink}</li>
+            <li><strong>Accounts to Join:</strong> ${accountCount}</li>
+            <li><strong>Join Time:</strong> ${joinTime}</li>
+            <li><strong>Leave Time:</strong> ${leaveTime}</li>
+            <li><strong>Raise Hand Count:</strong> ${raiseCount}</li>
+            <li><strong>Raise Hand Delay:</strong> ${raiseDelay}</li>
+          </ul>
+        `;
+
+        // Optionally scroll to live session card
+        liveCard.scrollIntoView({ behavior: 'smooth' });
+
+        if (response.ok) {
           document.getElementById('liveStatus').innerText = 'Live session started successfully!';
-          alert(' Live session started successfully!');
           document.getElementById('liveSessionForm').reset();
         } else {
-          const data = await response.json();
           document.getElementById('liveStatus').innerText = ' Error: ' + (data.message || 'Something went wrong');
-          alert(' Failed to start live session. Check console for errors.');
         }
       } catch (error) {
         console.error('Live session error:', error);
+        statusMsg.className = 'alert alert-danger mt-2';
+        statusMsg.innerText = 'Network or server error.';
+        statusMsg.style.display = 'block';
         document.getElementById('liveStatus').innerText = ' Network or server error.';
-        alert(' Network or server error. Check the console.');
       }
     }
+    
 
 
 

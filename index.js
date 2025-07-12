@@ -464,7 +464,7 @@ app.post('/api/join-channel', suppressTimeoutError(async (req, res) => {
         } catch (readErr) {
           console.warn(`[JOIN - ${acc.phoneNumber}] ReadHistory skipped for ${joinedEntityTitle} due to:`, readErr.message);
         }
-        const leaveDelay = Number(stayDays) * 2 * 60 * 1000;
+        const leaveDelay = Number(stayDays) * 24 * 60 * 60 * 1000;
         if (leaveDelay > 0) {
           setTimeout(() => {
             const leaveClient = new TelegramClient(
@@ -568,7 +568,7 @@ app.post('/api/leave-channel', suppressTimeoutError(async (req, res) => {
           try {
             await client.connect();
             await client.invoke(new Api.channels.LeaveChannel({ channel: inputChannel }));
-            console.log(`[LEAVE] ${acc.phoneNumber} left the channel at T+${index * intervalMinutes} minutes`);
+            console.log(`[LEAVE] ${acc.phoneNumber} left the channel at ${index * intervalMinutes} minute(s)`);
           } catch (err) {
             console.error(`[LEAVE ERROR] ${acc.phoneNumber}:`, err.message);
           } finally {
@@ -629,7 +629,7 @@ console.log(`[${acc.phoneNumber}] ${action.toUpperCase()} applied.`);
 
 // If action is "mute", schedule auto-unmute
 if (action === 'mute' && duration > 0) {
-  const unmuteDelay = duration * 1 * 1000;
+  const unmuteDelay = duration * 60 * 1000;
 
   setTimeout(async () => {
     const unmuteClient = new TelegramClient(
@@ -785,25 +785,39 @@ app.post('/api/live-session', suppressTimeoutError(async (req, res) => {
     const allAccounts = await Account.find();
     const usableAccounts = [];
 
-    // Filter accounts that are already in the channel
+    // Ensure all accounts are in the channel (join if not already a participant)
     for (const acc of allAccounts) {
       const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
         connectionRetries: 3,
       });
-
+      let inputChannel;
       try {
         await client.connect();
-        const inputChannel = await getChannelEntity(client, channelLink);
-
+        inputChannel = await getChannelEntity(client, channelLink);
         // Check if account is participant
         await client.invoke(new Api.channels.GetParticipant({
           channel: inputChannel,
           participant: 'me',
         }));
-
+        // Already a participant
         usableAccounts.push({ acc, inputChannel });
       } catch (err) {
-        if (!err.message.includes('USER_NOT_PARTICIPANT')) {
+        // If not a participant, try to join
+        if (err.message && err.message.includes('USER_NOT_PARTICIPANT')) {
+          try {
+            inputChannel = inputChannel || await getChannelEntity(client, channelLink);
+            await client.invoke(new Api.channels.JoinChannel({ channel: inputChannel }));
+            // Confirm join
+            await client.invoke(new Api.channels.GetParticipant({
+              channel: inputChannel,
+              participant: 'me',
+            }));
+            usableAccounts.push({ acc, inputChannel });
+            console.log(`[LIVE SESSION] ${acc.phoneNumber} joined channel for live session.`);
+          } catch (joinErr) {
+            console.warn(`[LIVE SESSION JOIN FAIL] ${acc.phoneNumber}: ${joinErr.message}`);
+          }
+        } else {
           console.warn(`[SKIP] ${acc.phoneNumber}: ${err.message}`);
         }
       } finally {
@@ -818,10 +832,41 @@ app.post('/api/live-session', suppressTimeoutError(async (req, res) => {
 
     const joinDelay = Math.max(0, moment(joinTime).valueOf() - Date.now());
     const leaveDelay = Math.max(0, moment(leaveTime).valueOf() - Date.now());
-    const raiseDelayMs = parseDelayToMs(raiseHandDelay);
+    let raiseDelayMs = 0;
+    if (typeof raiseHandDelay === 'string' && raiseHandDelay.trim() !== '') {
+      try {
+        raiseDelayMs = parseDelayToMs(raiseHandDelay);
+      } catch (e) {
+        console.warn('[LIVE SESSION WARNING] Invalid raiseHandDelay:', raiseHandDelay, e.message);
+        raiseDelayMs = 0;
+      }
+    }
 
     // Schedule session
     setTimeout(() => {
+      // Send a visible message to the channel to indicate live session started
+      if (selected.length > 0) {
+        (async () => {
+          const { acc, inputChannel } = selected[0];
+          const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
+            connectionRetries: 3,
+          });
+          try {
+            // Use withTimeout to avoid hanging forever
+            await withTimeout(client.connect(), 15000, 'Timeout connecting for live session announcement');
+            await withTimeout(client.sendMessage(inputChannel, { message: '🔴 Live session started!' }), 15000, 'Timeout sending live session message');
+            console.log(`[LIVE SESSION NOTICE] Sent to channel by ${acc.phoneNumber}`);
+          } catch (err) {
+            console.warn(`[LIVE SESSION NOTICE ERROR] ${acc.phoneNumber}: ${err.message}`);
+          } finally {
+            if (client && client.connected) {
+              await client.disconnect();
+              try { await client.destroy(); } catch (e) {}
+            }
+          }
+        })();
+      }
+
       selected.forEach(({ acc, inputChannel }, index) => {
         (async () => {
           const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
