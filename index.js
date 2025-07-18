@@ -597,83 +597,106 @@ app.post('/api/leave-channel', suppressTimeoutError(async (req, res) => {
 
 //  mute/unmute accounts in a channel
 app.post('/api/mute-unmute', async (req, res) => {
-  const { channelLink, action, duration, count } = req.body;
+  const { channelLink, action, duration, count, intervalMinutes } = req.body;
 
   try {
-    const accounts = await Account.find().limit(Number(count));
-    if (!accounts.length) {
-      return res.status(400).json({ success: false, message: 'No accounts available.' });
-    }
+    const allAccounts = await Account.find();
+    const validAccounts = [];
 
-    accounts.forEach(async (acc, index) => {
-      let client;
+    // STEP 1: Check which accounts are joined
+    for (const acc of allAccounts) {
+      const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, { connectionRetries: 3 });
       try {
-        client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, { connectionRetries: 3 });
         await client.connect();
-
         const inputChannel = await getChannelEntity(client, channelLink);
-        
-        // MuteUntil: 0 for unmute, or timestamp in future for mute
-        const muteUntil = action === 'mute'
-          ? Math.floor(Date.now() / 1000) + (duration * 60)  // duration in minutes
-          : 0;
 
-       await client.invoke(new Api.account.UpdateNotifySettings({
-  peer: inputChannel,
-  settings: new Api.InputPeerNotifySettings({
-    muteUntil
-  })
-}));
+        await client.invoke(new Api.channels.GetParticipant({
+          channel: inputChannel,
+          participant: 'me'
+        }));
 
-console.log(`[${acc.phoneNumber}] ${action.toUpperCase()} applied.`);
+        // If no error, account is in the channel
+        validAccounts.push({ acc, inputChannel });
 
-// If action is "mute", schedule auto-unmute
-if (action === 'mute' && duration > 0) {
-  const unmuteDelay = duration * 60 * 1000;
-
-  setTimeout(async () => {
-    const unmuteClient = new TelegramClient(
-      new StringSession(acc.stringSession),
-      apiId,
-      apiHash,
-      { connectionRetries: 3 }
-    );
-
-    try {
-      await unmuteClient.connect();
-      const inputChannelAgain = await getChannelEntity(unmuteClient, channelLink);
-
-      await unmuteClient.invoke(new Api.account.UpdateNotifySettings({
-        peer: inputChannelAgain,
-        settings: new Api.InputPeerNotifySettings({
-          muteUntil: 0
-        })
-      }));
-
-      console.log(`[AUTO-UNMUTE] ${acc.phoneNumber} → unmuted after ${duration} minutes`);
-    } catch (err) {
-      console.error(`[AUTO-UNMUTE ERROR] ${acc.phoneNumber} →`, err.message);
-    } finally {
-      if (unmuteClient && unmuteClient.connected) {
-        await unmuteClient.disconnect();
+      } catch (err) {
+        if (!err.message.includes('USER_NOT_PARTICIPANT')) {
+          console.warn(`[CHECK FAIL] ${acc.phoneNumber}:`, err.message);
+        }
+      } finally {
+        await client.disconnect();
+        try { await client.destroy(); } catch (e) {}
       }
     }
-  }, unmuteDelay);
-}
 
+    const selectedAccounts = validAccounts.slice(0, count);
+    const intervalMs = intervalMinutes * 60 * 1000;
 
+    // STEP 2: Schedule mute/unmute for each account
+    selectedAccounts.forEach(({ acc, inputChannel }, index) => {
+      const delay = index * intervalMs;
 
-        await client.disconnect();
-      } catch (err) {
-        console.error(`[${acc.phoneNumber}] Error in mute/unmute:`, err.message);
-        if (client && client.connected) await client.disconnect();
-      }
+      setTimeout(() => {
+        (async () => {
+          const client = new TelegramClient(
+            new StringSession(acc.stringSession),
+            apiId,
+            apiHash,
+            { connectionRetries: 3 }
+          );
+          try {
+            await client.connect();
+
+            const muteUntil = action === 'mute'
+              ? Math.floor(Date.now() / 1000) + (duration * 60)
+              : 0;
+
+            await client.invoke(new Api.account.UpdateNotifySettings({
+              peer: inputChannel,
+              settings: new Api.InputPeerNotifySettings({ muteUntil })
+            }));
+
+            console.log(`[${action.toUpperCase()}] ${acc.phoneNumber} → applied`);
+
+            // STEP 3: Auto-unmute logic
+            if (action === 'mute' && duration > 0) {
+              setTimeout(async () => {
+                const unmuteClient = new TelegramClient(
+                  new StringSession(acc.stringSession),
+                  apiId,
+                  apiHash,
+                  { connectionRetries: 3 }
+                );
+                try {
+                  await unmuteClient.connect();
+                  const inputChannelAgain = await getChannelEntity(unmuteClient, channelLink);
+                  await unmuteClient.invoke(new Api.account.UpdateNotifySettings({
+                    peer: inputChannelAgain,
+                    settings: new Api.InputPeerNotifySettings({ muteUntil: 0 })
+                  }));
+                  console.log(`[AUTO-UNMUTE] ${acc.phoneNumber} unmuted after ${duration} minutes`);
+                } catch (err) {
+                  console.error(`[AUTO-UNMUTE ERROR] ${acc.phoneNumber}:`, err.message);
+                } finally {
+                  await unmuteClient.disconnect();
+                  try { await unmuteClient.destroy(); } catch (e) {}
+                }
+              }, duration * 60 * 1000);
+            }
+
+          } catch (err) {
+            console.error(`[${action.toUpperCase()} ERROR] ${acc.phoneNumber}:`, err.message);
+          } finally {
+            await client.disconnect();
+            try { await client.destroy(); } catch (e) {}
+          }
+        })();
+      }, delay);
     });
 
-    res.json({ success: true, message: `Mute/Unmute command sent to ${accounts.length} accounts.` });
+    res.json({ success: true, message: `${action.toUpperCase()} scheduled for ${selectedAccounts.length} accounts at ${intervalMinutes} min intervals.` });
 
-  } catch (error) {
-    console.error('Mute/Unmute error:', error);
+  } catch (err) {
+    console.error('Mute/Unmute error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to process mute/unmute request.' });
   }
 });
@@ -682,7 +705,56 @@ if (action === 'mute' && duration > 0) {
 
 
 // Route to add views to a post in a channel
-app.post('/api/add-views', suppressTimeoutError(async (req, res) => {
+
+// Helper: Convert "10s", "2m" to milliseconds
+function parseDurationToMs(str) {
+  if (typeof str !== 'string') str = String(str);
+  str = str.trim().toLowerCase();
+
+  const match = str.match(/^(\d+)([sm])$/); // support "10s", "2m"
+  if (!match) throw new Error(`Invalid time format: ${str}`);
+
+  const value = parseInt(match[1]);
+  const unit = match[2];
+
+  if (unit === 's') return value * 1000;
+  if (unit === 'm') return value * 60 * 1000;
+
+  throw new Error(`Unsupported time unit in: ${str}`);
+}
+
+// Helper to get the latest post ID from a Telegram channel
+async function getLatestPostIdFromChannel(channelLink, account) {
+  const client = new TelegramClient(
+    new StringSession(account.stringSession),
+    apiId,
+    apiHash,
+    { connectionRetries: 3 }
+  );
+
+  try {
+    await client.connect();
+    const inputChannel = await getChannelEntity(client, channelLink);
+    const messages = await client.getMessages(inputChannel, { limit: 1 });
+
+    if (messages.length === 0) {
+      throw new Error('No messages found in channel.');
+    }
+
+    return messages[0].id;
+
+  } catch (err) {
+    console.error('[GET LATEST POST ID ERROR]:', err.message);
+    throw err;
+  } finally {
+    await client.disconnect();
+    try { await client.destroy(); } catch (e) {}
+  }
+}
+
+
+
+app.post('/api/add-views', async (req, res) => {
   const { channelLink, timeDelay, runMinutes } = req.body;
 
   if (!channelLink || !timeDelay || !runMinutes) {
@@ -699,235 +771,52 @@ app.post('/api/add-views', suppressTimeoutError(async (req, res) => {
   try {
     const accounts = await Account.find();
     const postId = await getLatestPostIdFromChannel(channelLink, accounts[0]);
-    const selectedAccounts = accounts.slice(0, 50); // Use max 50 accounts or adjust as needed
+    const selectedAccounts = accounts.slice(0, 50); // Adjust max views if needed
 
     selectedAccounts.forEach((acc, index) => {
       const timeout = index * delayMs;
-      setTimeout(async () => {
-        const client = new TelegramClient(
-          new StringSession(acc.stringSession),
-          apiId,
-          apiHash,
-          { connectionRetries: 3 }
-        );
 
-        try {
-          await client.connect();
-          const inputChannel = await getChannelEntity(client, channelLink);
-
-          await client.invoke(
-            new Api.messages.GetMessagesViews({
-              peer: inputChannel,
-              id: [postId],
-              increment: true
-            })
+      setTimeout(() => {
+        (async () => {
+          const client = new TelegramClient(
+            new StringSession(acc.stringSession),
+            apiId,
+            apiHash,
+            { connectionRetries: 3 }
           );
-          console.log(`[VIEWS] ${acc.phoneNumber} viewed message ID ${postId}`);
-        } catch (err) {
-          console.warn(`[VIEW ERROR] ${acc.phoneNumber} →`, err.message);
-        } finally {
-          await client.disconnect();
-        }
-      }, timeout);
-    });
-
-    return res.json({ success: true, message: `Scheduled ${selectedAccounts.length} views.` });
-
-  } catch (error) {
-    console.error('[VIEWS ROUTE ERROR]:', error);
-    res.status(500).json({ success: false, message: 'Server error.' });
-  }
-}));
-
-// Duration Parsing Helper
-function parseDurationToMs(str) {
-  if (typeof str !== 'string') str = String(str);
-  str = str.trim().toLowerCase();
-
-  if (str.endsWith('s')) return parseInt(str) * 1000;
-  if (str.endsWith('m')) return parseInt(str) * 60 * 1000;
-
-  throw new Error(`Invalid time format: ${str}`);
-}
-
-// Helper to get latest post ID
-async function getLatestPostIdFromChannel(channelLink, account) {
-  const client = new TelegramClient(
-    new StringSession(account.stringSession),
-    apiId,
-    apiHash,
-    { connectionRetries: 3 }
-  );
-  await client.connect();
-  try {
-    const inputChannel = await getChannelEntity(client, channelLink);
-    const messages = await client.getMessages(inputChannel, { limit: 1 });
-    if (messages.length > 0) return messages[0].id;
-    throw new Error('No messages found in channel.');
-  } finally {
-    await client.disconnect();
-  }
-}
-
-//live Session
-
-app.post('/api/live-session', suppressTimeoutError(async (req, res) => {
-  const {
-    channelLink,
-    accountCount,
-    joinTime,
-    leaveTime,
-    raiseHandCount,
-    raiseHandDelay
-  } = req.body;
-
-  try {
-    const allAccounts = await Account.find();
-    const usableAccounts = [];
-
-    // Ensure all accounts are in the channel (join if not already a participant)
-    for (const acc of allAccounts) {
-      const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
-        connectionRetries: 3,
-      });
-      let inputChannel;
-      try {
-        await client.connect();
-        inputChannel = await getChannelEntity(client, channelLink);
-        // Check if account is participant
-        await client.invoke(new Api.channels.GetParticipant({
-          channel: inputChannel,
-          participant: 'me',
-        }));
-        // Already a participant
-        usableAccounts.push({ acc, inputChannel });
-      } catch (err) {
-        // If not a participant, try to join
-        if (err.message && err.message.includes('USER_NOT_PARTICIPANT')) {
-          try {
-            inputChannel = inputChannel || await getChannelEntity(client, channelLink);
-            await client.invoke(new Api.channels.JoinChannel({ channel: inputChannel }));
-            // Confirm join
-            await client.invoke(new Api.channels.GetParticipant({
-              channel: inputChannel,
-              participant: 'me',
-            }));
-            usableAccounts.push({ acc, inputChannel });
-            console.log(`[LIVE SESSION] ${acc.phoneNumber} joined channel for live session.`);
-          } catch (joinErr) {
-            console.warn(`[LIVE SESSION JOIN FAIL] ${acc.phoneNumber}: ${joinErr.message}`);
-          }
-        } else {
-          console.warn(`[SKIP] ${acc.phoneNumber}: ${err.message}`);
-        }
-      } finally {
-        await client.disconnect();
-      }
-    }
-
-    const selected = usableAccounts.slice(0, accountCount);
-    if (selected.length === 0) {
-      return res.status(400).json({ success: false, message: 'No valid accounts found in the channel.' });
-    }
-
-    const joinDelay = Math.max(0, moment(joinTime).valueOf() - Date.now());
-    const leaveDelay = Math.max(0, moment(leaveTime).valueOf() - Date.now());
-    let raiseDelayMs = 0;
-    if (typeof raiseHandDelay === 'string' && raiseHandDelay.trim() !== '') {
-      try {
-        raiseDelayMs = parseDelayToMs(raiseHandDelay);
-      } catch (e) {
-        console.warn('[LIVE SESSION WARNING] Invalid raiseHandDelay:', raiseHandDelay, e.message);
-        raiseDelayMs = 0;
-      }
-    }
-
-    // Schedule session
-    setTimeout(() => {
-      // Send a visible message to the channel to indicate live session started
-      if (selected.length > 0) {
-        (async () => {
-          const { acc, inputChannel } = selected[0];
-          const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
-            connectionRetries: 3,
-          });
-          try {
-            // Use withTimeout to avoid hanging forever
-            await withTimeout(client.connect(), 15000, 'Timeout connecting for live session announcement');
-            await withTimeout(client.sendMessage(inputChannel, { message: '🔴 Live session started!' }), 15000, 'Timeout sending live session message');
-            console.log(`[LIVE SESSION NOTICE] Sent to channel by ${acc.phoneNumber}`);
-          } catch (err) {
-            console.warn(`[LIVE SESSION NOTICE ERROR] ${acc.phoneNumber}: ${err.message}`);
-          } finally {
-            if (client && client.connected) {
-              await client.disconnect();
-              try { await client.destroy(); } catch (e) {}
-            }
-          }
-        })();
-      }
-
-      selected.forEach(({ acc, inputChannel }, index) => {
-        (async () => {
-          const client = new TelegramClient(new StringSession(acc.stringSession), apiId, apiHash, {
-            connectionRetries: 3,
-          });
 
           try {
             await client.connect();
-            console.log(`[LIVE JOIN] ${acc.phoneNumber} joined ${channelLink}`);
+            const inputChannel = await getChannelEntity(client, channelLink);
 
-            // Raise Hand simulation (send emoji message)
-            if (index < raiseHandCount) {
-              setTimeout(async () => {
-                try {
-                  await client.sendMessage(inputChannel, { message: '[👋] Raised Hand' });
-                  console.log(`[HAND RAISE] ${acc.phoneNumber}`);
-                } catch (err) {
-                  console.warn(`[HAND ERROR] ${acc.phoneNumber}: ${err.message}`);
-                }
-              }, raiseDelayMs);
-            }
+            await client.invoke(
+              new Api.messages.GetMessagesViews({
+                peer: inputChannel,
+                id: [postId],
+                increment: true
+              })
+            );
 
-            // Schedule leave
-            setTimeout(async () => {
-              try {
-                await client.invoke(new Api.channels.LeaveChannel({ channel: inputChannel }));
-                console.log(`[LEFT LIVE] ${acc.phoneNumber}`);
-              } catch (err) {
-                console.warn(`[LEAVE ERROR] ${acc.phoneNumber}: ${err.message}`);
-              } finally {
-                await client.disconnect();
-              }
-            }, leaveDelay - joinDelay);
+            console.log(`[VIEWS] ${acc.phoneNumber} viewed post ID ${postId}`);
 
           } catch (err) {
-            console.error(`[JOIN FAIL] ${acc.phoneNumber}: ${err.message}`);
+            console.warn(`[VIEW ERROR] ${acc.phoneNumber} →`, err.message);
+          } finally {
             await client.disconnect();
+            try { await client.destroy(); } catch (e) {}
           }
         })();
-      });
-    }, joinDelay);
+      }, timeout);
+    });
 
-    res.json({ success: true, message: `${selected.length} accounts scheduled for live session.` });
+    return res.json({ success: true, message: `Scheduled ${selectedAccounts.length} views at intervals of ${timeDelay}.` });
 
-  } catch (err) {
-    console.error('[LIVE SESSION ERROR]', err.message);
-    res.status(500).json({ success: false, message: 'Live session failed to schedule.' });
+  } catch (error) {
+    console.error('[VIEWS ROUTE ERROR]:', error.message);
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
-}));
+});
 
-// Helper to convert delay strings like "5s", "2m"
-function parseDelayToMs(input) {
-  const match = input.match(/(\d+)\s*(s|m|h)/i);
-  if (!match) return 0;
-  const value = parseInt(match[1]);
-  const unit = match[2].toLowerCase();
-  if (unit === 's') return value * 1000;
-  if (unit === 'm') return value * 60 * 1000;
-  if (unit === 'h') return value * 60 * 60 * 1000;
-  return 0;
-}
 
 
 // Serve the index.html file
